@@ -25,12 +25,12 @@ public sealed class UserService(UserManager<User> userManager, RoleManager<Ident
             return Result.Success();
         }
 
-        EnrichResultFromIdentityResult(ref result, createResult);
+        EnrichResultFromIdentityResult(result, createResult);
         
         return result;
     }
 
-    private static void EnrichResultFromIdentityResult(ref Result result, IdentityResult identityResult)
+    private static void EnrichResultFromIdentityResult(Result result, IdentityResult identityResult)
     {
         foreach (var err in identityResult.Errors)
         {
@@ -45,12 +45,28 @@ public sealed class UserService(UserManager<User> userManager, RoleManager<Ident
                 case "UserNameTooLong":
                     result.AddError(DomainErrors.UserNameLong);
                     break;
+                case "InvalidUserName":
+                    result.AddError(DomainErrors.IncorrectUserName);
+                    break;
                 
                 case "DuplicateEmail":
                     result.AddError(DomainErrors.DuplicateUserEmail);
                     break;
                 case "InvalidEmail":
                     result.AddError(DomainErrors.IncorrectUserEmail);
+                    break; 
+                
+                case "PasswordTooShort":
+                    result.AddError(DomainErrors.PasswordShort);
+                    break;
+                case "PasswordRequiresNonAlphanumeric":
+                    result.AddError(DomainErrors.PasswordNoNonAlphanumeric);
+                    break;
+                case "PasswordRequiresDigit":
+                    result.AddError(DomainErrors.PasswordNoDigit);
+                    break;
+
+                default: result.AddError(Error.Unknown);
                     break;
             }
         }

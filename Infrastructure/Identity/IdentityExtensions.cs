@@ -28,11 +28,11 @@ internal static class IdentityExtensions
         private IdentityOptions ConfigurePassword()
         {
             options.Password.RequireDigit = true;
-            options.Password.RequiredLength = 8;
+            options.Password.RequiredLength = 10;
             
             options.Password.RequireLowercase = false;
             options.Password.RequireUppercase = false;
-            options.Password.RequireNonAlphanumeric = false;
+            options.Password.RequireNonAlphanumeric = true;
             options.Password.RequiredUniqueChars = 0;
             
             return options;

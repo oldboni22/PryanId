@@ -17,28 +17,26 @@ public class Result
 
 public class Result<TValue> : Result
 {
-    private readonly TValue? _value;
-
-    protected internal Result(TValue? value)
+    protected internal Result(TValue value)
     {
-        _value = value;
+        Value = value;
     }
 
     private Result(TValue? value, IEnumerable<Error> errors)
     {
-        _value = value;
+        Value = value;
         _errors.AddRange(errors);
     }
     
     public TValue Value => IsSuccess 
-        ? _value! 
+        ? field! 
         : throw new InvalidOperationException("The value of a failure result can't be accessed.");
 
-    public static Result<TValue> FromResult(Result failedResult, TValue? value = default) =>
-        new Result<TValue>(value, failedResult.Errors);
+    public static Result<TValue> FromResult(Result result, TValue? value = default) =>
+        new Result<TValue>(value, result.Errors);
     
-    public static Result<TValue> FromResult<T2>(Result<T2> failedResult, TValue? value = default) =>
-        new Result<TValue>(value, failedResult.Errors);
+    public static Result<TValue> FromResult<T2>(Result<T2> result, TValue? value = default) =>
+        new Result<TValue>(value, result.Errors);
     
     public static implicit operator Result<TValue>(TValue? value) => Success(value)!;
 }
