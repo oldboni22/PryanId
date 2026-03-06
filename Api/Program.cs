@@ -1,9 +1,8 @@
 ﻿using Api;
 using Duende.IdentityServer.EntityFramework.DbContexts;
 using Infrastructure;
-using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Serilog;
-using Shared;
+using Shared.Db;
 
 Log.Logger = new LoggerConfiguration()
     .WriteTo.Console()

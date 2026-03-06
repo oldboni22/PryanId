@@ -4,6 +4,7 @@ using Infrastructure;
 using Microsoft.EntityFrameworkCore;
 using Serilog;
 using Shared;
+using Shared.Db;
 
 namespace Api;
 
