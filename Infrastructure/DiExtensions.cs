@@ -1,4 +1,5 @@
 using Domain.Entities;
+using Infrastructure.Identity;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -21,8 +22,7 @@ public static class DiExtensions
         {
             services
                 .AddUserContext(configuration)
-                .AddIdentity<User, IdentityRole<Guid>>()
-                .AddEntityFrameworkStores<UserDbContext>();
+                .ConfigureIdentity();
 
             return services;
         }
@@ -30,8 +30,9 @@ public static class DiExtensions
         private IServiceCollection AddUserContext(IConfiguration configuration)
         {
             var connectionString = configuration.ExtractConnectionString(SectionNames.IdentityStorage);
-            
+
             return services.AddDbContext<UserDbContext>(options => options.UseNpgsql(connectionString));
         }
     }
+    
 }
