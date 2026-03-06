@@ -4,6 +4,9 @@ namespace Domain;
 
 public static class DomainErrors
 {
+    public static Error UserNotFound =>
+        new Error("User.NotFound", "The used was not found.", ErrorType.NotFound);
+    
     #region UserName
     
     public static Error UserNameShort =>

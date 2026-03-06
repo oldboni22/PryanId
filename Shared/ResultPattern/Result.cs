@@ -11,8 +11,6 @@ public class Result
     public void AddError(Error error) => _errors.Add(error);
     
     public static Result Success() => new();
-
-    public static Result<TValue> Success<TValue>(TValue value) => new(value);
 }
 
 public class Result<TValue> : Result
@@ -37,6 +35,4 @@ public class Result<TValue> : Result
     
     public static Result<TValue> FromResult<T2>(Result<T2> result, TValue? value = default) =>
         new Result<TValue>(value, result.Errors);
-    
-    public static implicit operator Result<TValue>(TValue? value) => Success(value)!;
 }
