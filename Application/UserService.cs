@@ -7,7 +7,7 @@ using Shared.ResultPattern;
 
 namespace Application;
 
-public sealed class UserService(UserManager<User> userManager, RoleManager<IdentityRole<Guid>> roleManager)
+public sealed class UserService(UserManager<User> userManager)
 {
     public async Task<Result> CreateAsync(CreateUserModel createUserModel)
     {
