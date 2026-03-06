@@ -1,36 +1,24 @@
+using Domain;
 using Duende.IdentityServer;
-using Microsoft.AspNetCore.Mvc.RazorPages;
+using Infrastructure;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.IdentityModel.Protocols.Configuration;
 using Serilog;
+using Shared;
 
 namespace Api;
 
+file static class SectionNames
+{
+    public const string ConfigurationalStorage = $"{DbConnectionOptions.SectionName}:Configurational";
+    
+    public const string OperationalStorage = $"{DbConnectionOptions.SectionName}:Operational";
+}
+
 internal static class HostingExtensions
 {
-    extension(ConfigurationManager configuration)
-    {
-        private T ExtractOptions<T>(string sectionName) where T : class
-        {
-            var options = configuration
-                    .GetSection(sectionName)
-                    .Get<T>()
-                    ?? throw new InvalidConfigurationException();
-
-            return options;
-        }
-        
-        private string GetConnectionString(string sectionName)
-        {
-            var options = configuration.ExtractOptions<DbConnectionOptions>(sectionName);
-            
-            return options.ConnectionString;
-        }
-    }
-    
     extension(WebApplicationBuilder builder)
     {
-        public WebApplicationBuilder ConfigureSerilog()
+        private WebApplicationBuilder ConfigureSerilog()
         {
             builder.Host.UseSerilog((context, lc) => lc
                 .WriteTo.Console(
@@ -57,7 +45,7 @@ internal static class HostingExtensions
                 .AddConfigurationStore(options =>
                 {
                     var connectionString =
-                        builder.Configuration.GetConnectionString(DbConnectionOptions.ConfigurationalStorageSectionName);
+                        builder.Configuration.ExtractConnectionString(SectionNames.ConfigurationalStorage);
                     
                     options.ConfigureDbContext = b => b
                         .UseNpgsql(connectionString, dbOpts => dbOpts.MigrationsAssembly(typeof(Program).Assembly.FullName));
@@ -66,7 +54,7 @@ internal static class HostingExtensions
                 .AddOperationalStore(options =>
                 {
                     var connectionString =
-                        builder.Configuration.GetConnectionString(DbConnectionOptions.OperationalStorageSectionName);
+                        builder.Configuration.ExtractConnectionString(SectionNames.OperationalStorage);
 
                     options.ConfigureDbContext = b => b
                         .UseNpgsql(connectionString, dbOpts => dbOpts.MigrationsAssembly(typeof(Program).Assembly.FullName));
@@ -85,7 +73,14 @@ internal static class HostingExtensions
                     options.ClientSecret = connectionOptions.ClientSecret;
                 });
 
-            builder.Services.AddControllers();
+            builder.ConfigureSerilog();
+            
+            builder.Services
+                .AddInfrastructure(builder.Configuration)
+                .AddControllers();
+
+            identityServerBuilder.AddAspNetIdentity<User>();
+            
             return builder.Build();
         }
     }
@@ -99,6 +94,8 @@ internal static class HostingExtensions
             app.UseIdentityServer();
             app.UseAuthorization();
 
+            app.MapControllers();
+            
             return app;
         }
     }

@@ -8,6 +8,7 @@
     </PropertyGroup>
 
     <ItemGroup>
+        <PackageReference Include="Duende.IdentityServer.AspNetIdentity" Version="7.4.6" />
         <PackageReference Include="Duende.IdentityServer.EntityFramework" Version="7.4.6" />
 
         <PackageReference Include="Microsoft.AspNetCore.Authentication.Google" Version="10.0.3" />
@@ -22,5 +23,10 @@
           <PrivateAssets>all</PrivateAssets>
           <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
         </PackageReference>
+    </ItemGroup>
+
+    <ItemGroup>
+      <ProjectReference Include="..\Infrastructure\Infrastructure.csproj" />
+      <ProjectReference Include="..\Shared\Shared.csproj" />
     </ItemGroup>
 </Project>

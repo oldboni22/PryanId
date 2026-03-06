@@ -1,5 +1,9 @@
 ﻿using Api;
+using Duende.IdentityServer.EntityFramework.DbContexts;
+using Infrastructure;
+using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Serilog;
+using Shared;
 
 Log.Logger = new LoggerConfiguration()
     .WriteTo.Console()
@@ -12,10 +16,11 @@ try
     var builder = WebApplication.CreateBuilder(args);
     
     var app = builder
-        .ConfigureSerilog()
         .ConfigureServices()
         .ConfigurePipeline();
 
+    app.MigrateDatabases(typeof(UserDbContext), typeof(ConfigurationDbContext), typeof(PersistedGrantDbContext));
+    
     app.Run();
 }
 catch (Exception ex) when (ex is not HostAbortedException)
