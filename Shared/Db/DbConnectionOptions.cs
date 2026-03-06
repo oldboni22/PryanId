@@ -1,6 +1,6 @@
 namespace Shared.Db;
 
-public record DbConnectionOptions
+public sealed record DbConnectionOptions
 {
     public const string SectionName = "DbConnection";
     

@@ -1,6 +1,6 @@
 namespace Api;
 
-public class GoogleAuthConnectionOptions
+public sealed record GoogleAuthConnectionOptions
 {
     public const string SectionName = "GoogleAuth";
     

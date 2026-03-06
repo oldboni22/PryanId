@@ -1,4 +1,5 @@
 using Domain;
+using Domain.Entities;
 using Duende.IdentityServer;
 using Infrastructure;
 using Microsoft.EntityFrameworkCore;
