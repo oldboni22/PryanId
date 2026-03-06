@@ -1,3 +1,5 @@
+using Domain.Entities;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -17,8 +19,12 @@ public static class DiExtensions
     {
         public IServiceCollection AddInfrastructure(IConfiguration configuration)
         {
-            return services
-                .AddUserContext(configuration);
+            services
+                .AddUserContext(configuration)
+                .AddIdentity<User, IdentityRole<Guid>>()
+                .AddEntityFrameworkStores<UserDbContext>();
+
+            return services;
         }
 
         private IServiceCollection AddUserContext(IConfiguration configuration)

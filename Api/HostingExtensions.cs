@@ -34,6 +34,8 @@ internal static class HostingExtensions
         
         public WebApplication ConfigureServices()
         {
+            builder.ConfigureSerilog();
+            
             var identityServerBuilder = builder.Services
                 .AddIdentityServer(options =>
                 {
@@ -74,13 +76,11 @@ internal static class HostingExtensions
                     options.ClientId = connectionOptions.ClientId;
                     options.ClientSecret = connectionOptions.ClientSecret;
                 });
-
-            builder.ConfigureSerilog();
             
             builder.Services
                 .AddInfrastructure(builder.Configuration)
                 .AddControllers();
-
+            
             identityServerBuilder.AddAspNetIdentity<User>();
             
             return builder.Build();
