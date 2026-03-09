@@ -1,6 +1,8 @@
 using Application;
+using Application.Auth;
 using Domain;
 using Domain.Entities;
+using Domain.Enums;
 using Duende.IdentityServer;
 using Infrastructure;
 using Infrastructure.Application.JWT;
@@ -40,6 +42,7 @@ internal static class HostingExtensions
         public WebApplication ConfigureServices()
         {
             builder.ConfigureSerilog();
+            builder.Services.AddHttpContextAccessor();
            
             var jwtOptions = builder.Configuration.GetSection(JwtOptions.SectionName).Get<JwtOptions>()
                              ?? throw new InvalidOperationException();
@@ -107,6 +110,21 @@ internal static class HostingExtensions
                     options.ClientId = connectionOptions.ClientId;
                     options.ClientSecret = connectionOptions.ClientSecret;
                 });
+            
+            builder.Services.AddAuthorization(options =>
+            {
+                options.AddPolicy(ProjectRoleRequirement.Viewer, policy => 
+                    policy.Requirements.Add(new ProjectRoleRequirement(UserClientRole.Viewer)));
+        
+                options.AddPolicy(ProjectRoleRequirement.Editor, policy => 
+                    policy.Requirements.Add(new ProjectRoleRequirement(UserClientRole.Editor)));
+        
+                options.AddPolicy(ProjectRoleRequirement.Admin, policy => 
+                    policy.Requirements.Add(new ProjectRoleRequirement(UserClientRole.Admin)));
+        
+                options.AddPolicy(ProjectRoleRequirement.Owner, policy => 
+                    policy.Requirements.Add(new ProjectRoleRequirement(UserClientRole.Owner)));
+            });
             
             builder.Services
                 .AddInfrastructure(builder.Configuration)

@@ -15,5 +15,7 @@ public sealed class UserConfiguration : IEntityTypeConfiguration<User>
         
         builder.Property(user => user.NormalizedUserName)
             .HasMaxLength(25);
+
+        builder.HasMany(user => user.UserClients);
     }
 }

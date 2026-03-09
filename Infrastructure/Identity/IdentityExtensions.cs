@@ -1,3 +1,5 @@
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
 using Domain.Entities;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.DependencyInjection;
@@ -6,6 +8,17 @@ namespace Infrastructure.Identity;
 
 internal static class IdentityExtensions
 {
+    extension(ClaimsPrincipal claimsPrincipal)
+    {
+        public Guid ExtractUserId()
+        {
+            return Guid.TryParse(claimsPrincipal.FindFirstValue(JwtRegisteredClaimNames.Sub) 
+                                 ?? claimsPrincipal.FindFirstValue(ClaimTypes.NameIdentifier), out var id) 
+                ? id 
+                : Guid.Empty;
+        }
+    }
+    
     extension(IServiceCollection services)
     {
         public IServiceCollection ConfigureIdentity()
