@@ -1,4 +1,7 @@
-﻿using Application.Models.User;
+﻿using System;
+using System.Linq;
+using System.Threading.Tasks;
+using Application.Models.User;
 using Domain;
 using Domain.Entities;
 using Microsoft.AspNetCore.Identity;
@@ -77,6 +80,27 @@ public sealed class UserService(UserManager<User> userManager)
         
         EnrichResultFromIdentityResult(result, updateResult);
         return Result<ReadUserModel>.FromResult(result);
+    }
+
+    public async Task<Result> UpdatePasswordAsync(Guid userId, UpdatePasswordModel updateModel)
+    {
+        var result = Result.Success();
+        
+        var user = await userManager.FindByIdAsync(userId.ToString());
+        if (user is null)
+        {
+            result.AddError(DomainErrors.UserNotFound);
+            return result;
+        }
+        
+        var identityResult = await userManager.ChangePasswordAsync(user, updateModel.OldPassword, updateModel.NewPassword);
+
+        if (!identityResult.Succeeded)
+        {
+            EnrichResultFromIdentityResult(result, identityResult);
+        }
+        
+        return result;
     }
     
     public async Task<Result> DeleteAsync(Guid userId)
