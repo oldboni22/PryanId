@@ -6,10 +6,9 @@ using Microsoft.IdentityModel.Tokens;
 
 namespace Infrastructure.Application.JWT;
 
-public class JwtProvider(JwtOptions options, ISigningCredentialStore credentialStore, TimeProvider timeProvider) : IJwtProvider
+public class JwtProvider(
+    JwtOptions options, ISigningCredentialStore credentialStore, TimeProvider timeProvider, JsonWebTokenHandler handler) : IJwtProvider
 {
-    private static readonly JsonWebTokenHandler Handler = new();
-    
     public async Task<string> Generate(Guid userId, string email, IEnumerable<string> roles)
     {
         var credentials = await credentialStore.GetSigningCredentialsAsync();
@@ -23,7 +22,7 @@ public class JwtProvider(JwtOptions options, ISigningCredentialStore credentialS
         
         claims.AddRange(roles.Select(r => new Claim(ClaimTypes.Role, r)));
         
-        return Handler.CreateToken(new SecurityTokenDescriptor
+        return handler.CreateToken(new SecurityTokenDescriptor
         {
             Subject = new ClaimsIdentity(claims),
             Issuer =  options.Issuer,

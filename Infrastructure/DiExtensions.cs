@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.IdentityModel.JsonWebTokens;
 using Shared;
 using Shared.Db;
 
@@ -24,6 +25,7 @@ public static class DiExtensions
         public IServiceCollection AddInfrastructure(IConfiguration configuration)
         {
             services
+                .AddSingleton(new JsonWebTokenHandler())
                 .AddSingleton(TimeProvider.System)
                 .AddUserContext(configuration)
                 .ConfigureIdentity()
