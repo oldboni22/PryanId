@@ -1,8 +1,13 @@
+using Application;
 using Domain;
 using Domain.Entities;
 using Duende.IdentityServer;
 using Infrastructure;
+using Infrastructure.Application.JWT;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
+using Microsoft.IdentityModel.Tokens;
 using Serilog;
 using Shared;
 using Shared.Db;
@@ -35,6 +40,9 @@ internal static class HostingExtensions
         public WebApplication ConfigureServices()
         {
             builder.ConfigureSerilog();
+           
+            var jwtOptions = builder.Configuration.GetSection(JwtOptions.SectionName).Get<JwtOptions>()
+                             ?? throw new InvalidOperationException();
             
             var identityServerBuilder = builder.Services
                 .AddIdentityServer(options =>
@@ -45,6 +53,8 @@ internal static class HostingExtensions
                     options.Events.RaiseSuccessEvents = true;
 
                     options.EmitStaticAudienceClaim = true;
+
+                    options.IssuerUri = jwtOptions.Issuer;
                 })
                 .AddConfigurationStore(options =>
                 {
@@ -62,9 +72,30 @@ internal static class HostingExtensions
 
                     options.ConfigureDbContext = b => b
                         .UseNpgsql(connectionString, dbOpts => dbOpts.MigrationsAssembly(typeof(Program).Assembly.FullName));
-                });
-
-            builder.Services.AddAuthentication()
+                })
+                .AddDeveloperSigningCredential();
+            
+            builder.Services.AddAuthentication(options =>
+                {
+                    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+                    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+                })
+                .AddJwtBearer(options =>
+                {
+                    options.Authority = jwtOptions.Issuer;
+                    options.Audience =  jwtOptions.Audience;
+                    
+                    options.TokenValidationParameters = new TokenValidationParameters
+                    {
+                        ValidateIssuer = true,
+                        ValidIssuer = jwtOptions.Issuer,
+                        ValidateAudience = true,
+                        ValidAudience = jwtOptions.Audience,
+                        ValidateLifetime = true
+                    };
+                    
+                    options.RequireHttpsMetadata = false;
+                })
                 .AddGoogle(options =>
                 {
                     options.SignInScheme = IdentityServerConstants.ExternalCookieAuthenticationScheme;
@@ -79,6 +110,7 @@ internal static class HostingExtensions
             
             builder.Services
                 .AddInfrastructure(builder.Configuration)
+                .AddApplication(builder.Configuration)
                 .AddControllers();
             
             identityServerBuilder.AddAspNetIdentity<User>();

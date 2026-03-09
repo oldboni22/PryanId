@@ -10,7 +10,24 @@ using Shared.ResultPattern;
 
 namespace Application;
 
-public sealed class UserService(UserManager<User> userManager)
+public interface IUserService
+{
+    Task<Result> CreateAsync(CreateUserModel createUserModel);
+    
+    Task<Result<ReadUserModel>> GetAsync(Guid id, Guid callerId);
+    
+    Task<Result<ReadUserModel>> LoginAsync(string email, string password);
+    
+    Task<Result<ReadUserModel>> UpdateDataAsync(Guid userId, UpdateUserDataModel updateUserModel);
+    
+    Task<Result> UpdatePasswordAsync(Guid userId, UpdatePasswordModel updateModel);
+    
+    Task<Result> RecoverPasswordAsync(Guid userId, string newPassword);
+    
+    Task<Result> DeleteAsync(Guid userId);
+}
+
+public sealed class UserService(UserManager<User> userManager) : IUserService
 {
     public async Task<Result> CreateAsync(CreateUserModel createUserModel)
     {

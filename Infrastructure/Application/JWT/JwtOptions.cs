@@ -1,4 +1,4 @@
-namespace Application.JWT;
+namespace Infrastructure.Application.JWT;
 
 public sealed record JwtOptions(string Secret, string Issuer, string Audience, int ExpiryMinutes)
 {
