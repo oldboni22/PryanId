@@ -51,5 +51,4 @@ public static class DiExtensions
                 .AddScoped<IJwtProvider, JwtProvider>();
         }
     }
-    
 }

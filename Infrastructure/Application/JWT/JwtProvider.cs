@@ -6,7 +6,7 @@ using Microsoft.IdentityModel.Tokens;
 
 namespace Infrastructure.Application.JWT;
 
-public class JwtProvider(
+public sealed class JwtProvider(
     JwtOptions options, ISigningCredentialStore credentialStore, TimeProvider timeProvider, JsonWebTokenHandler handler) : IJwtProvider
 {
     public async Task<string> Generate(Guid userId, string email, IEnumerable<string> roles)
