@@ -68,7 +68,12 @@ public sealed class UserService(UserManager<User> userManager)
             return Result<ReadUserModel>.FromResult(result);
         }
 
-        user.Email = updateUserModel.NewEmail ?? user.Email;
+        if(updateUserModel.NewEmail is not  null)
+        {
+            user.Email = updateUserModel.NewEmail ?? user.Email;
+            user.EmailConfirmed = false;
+        }
+        
         user.UserName = updateUserModel.NewName  ?? user.UserName;
         
         var updateResult = await userManager.UpdateAsync(user);
@@ -94,6 +99,28 @@ public sealed class UserService(UserManager<User> userManager)
         }
         
         var identityResult = await userManager.ChangePasswordAsync(user, updateModel.OldPassword, updateModel.NewPassword);
+
+        if (!identityResult.Succeeded)
+        {
+            EnrichResultFromIdentityResult(result, identityResult);
+        }
+        
+        return result;
+    }
+    
+    public async Task<Result> RecoverPasswordAsync(Guid userId, string newPassword)
+    {
+        var result = Result.Success();
+        
+        var user = await userManager.FindByIdAsync(userId.ToString());
+        if (user is null)
+        {
+            result.AddError(DomainErrors.UserNotFound);
+            return result;
+        }
+        
+        await userManager.RemovePasswordAsync(user);
+        var identityResult = await userManager.AddPasswordAsync(user, newPassword);
 
         if (!identityResult.Succeeded)
         {
@@ -159,6 +186,9 @@ public sealed class UserService(UserManager<User> userManager)
                     break;
                 case "PasswordRequiresDigit":
                     result.AddError(DomainErrors.PasswordNoDigit);
+                    break;
+                case "PasswordMismatch":
+                    result.AddError(DomainErrors.PasswordIncorrect); 
                     break;
 
                 default: result.AddError(Error.Unknown);

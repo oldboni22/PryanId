@@ -33,7 +33,6 @@ public static class DomainErrors
     
     #endregion
 
-
     #region Password
 
     public static Error PasswordShort => 
@@ -44,6 +43,9 @@ public static class DomainErrors
     
     public static Error PasswordNoDigit => 
         new Error("Password.NoDigit","The password requires a digit.", ErrorType.Validation);
+    
+    public static Error PasswordIncorrect => 
+        new Error("Password.Incorrect","The password is incorrect.", ErrorType.Unauthorized);
     
     #endregion
 }
