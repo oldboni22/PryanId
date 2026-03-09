@@ -1,10 +1,6 @@
 namespace Api;
 
-public sealed record GoogleAuthConnectionOptions
+public sealed record GoogleAuthConnectionOptions(string ClientId, string ClientSecret)
 {
     public const string SectionName = "GoogleAuth";
-    
-    public required string ClientId { get; init; }
-    
-    public required string ClientSecret { get; init; }
 }
