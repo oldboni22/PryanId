@@ -7,6 +7,5 @@ public enum ErrorType
     Unknown,
     NotFound,
     Unauthorized,
-    Collision,
-    NotAllowed
+    Forbidden,
 }

@@ -56,6 +56,34 @@ public sealed class UserService(UserManager<User> userManager)
         return Result<ReadUserModel>.FromResult(result, model);
     }
 
+    public async Task<Result<ReadUserModel>> LoginAsync(string email, string password)
+    {
+        var result = Result.Success();
+        
+        var user = await userManager.FindByEmailAsync(email);
+        
+        if (user is null || !await userManager.CheckPasswordAsync(user, password))
+        {
+            result.AddError(DomainErrors.InvalidCredentials);
+            return Result<ReadUserModel>.FromResult(result);
+        }
+        
+        var isPasswordCorrect = await userManager.CheckPasswordAsync(user, password);
+
+        if (!isPasswordCorrect)
+        {
+            await userManager.AccessFailedAsync(user);
+            
+            result.AddError(DomainErrors.InvalidCredentials);
+            return Result<ReadUserModel>.FromResult(result);
+        }
+        
+        await userManager.ResetAccessFailedCountAsync(user);
+        
+        var model = new ReadUserModel(user.Id, user.UserName!, user.Email!);
+        return Result<ReadUserModel>.FromResult(result, model);
+    }
+    
     public async Task<Result<ReadUserModel>> UpdateDataAsync(Guid userId, UpdateUserDataModel updateUserModel)
     {
         var result = Result.Success();

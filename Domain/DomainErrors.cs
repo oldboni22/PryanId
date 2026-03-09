@@ -7,6 +7,9 @@ public static class DomainErrors
     public static Error UserNotFound =>
         new Error("User.NotFound", "The used was not found.", ErrorType.NotFound);
     
+    public static Error InvalidCredentials =>
+        new Error("Credentials.Invalid", "Invalid user credentials.", ErrorType.Unauthorized);
+    
     #region UserName
     
     public static Error UserNameShort =>
