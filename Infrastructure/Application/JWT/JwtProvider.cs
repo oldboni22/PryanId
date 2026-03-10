@@ -1,5 +1,7 @@
 using System.Security.Claims;
+using System.Security.Cryptography;
 using Application.Contracts.JWT;
+using Domain.Entities;
 using Duende.IdentityServer.Stores;
 using Microsoft.IdentityModel.JsonWebTokens;
 using Microsoft.IdentityModel.Tokens;
@@ -9,7 +11,17 @@ namespace Infrastructure.Application.JWT;
 public sealed class JwtProvider(
     JwtOptions options, ISigningCredentialStore credentialStore, TimeProvider timeProvider, JsonWebTokenHandler handler) : IJwtProvider
 {
-    public async Task<string> Generate(Guid userId, string email, IEnumerable<string> roles)
+    public async Task<TokenPair> Generate(User user)
+    {
+        var accessToken = await GenerateAccessToken(user.Id, user.Email!);
+        var refreshToken = GenerateRefreshToken();
+        
+        return new TokenPair(accessToken, refreshToken);
+    }
+
+    private static string GenerateRefreshToken() => Convert.ToBase64String(RandomNumberGenerator.GetBytes(32));
+    
+    private async Task<string> GenerateAccessToken(Guid userId, string email)
     {
         var credentials = await credentialStore.GetSigningCredentialsAsync();
         
@@ -20,14 +32,13 @@ public sealed class JwtProvider(
             new(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
         };
         
-        claims.AddRange(roles.Select(r => new Claim(ClaimTypes.Role, r)));
-        
         return handler.CreateToken(new SecurityTokenDescriptor
         {
             Subject = new ClaimsIdentity(claims),
             Issuer =  options.Issuer,
             Audience = options.Audience,
             Expires = timeProvider.GetUtcNow().AddMinutes(options.ExpiryMinutes).UtcDateTime,
+            IssuedAt = timeProvider.GetUtcNow().UtcDateTime,
             
             SigningCredentials = credentials
         });

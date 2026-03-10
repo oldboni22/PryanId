@@ -2,6 +2,8 @@ namespace Domain.Entities;
 
 public sealed class RefreshToken
 {
+    public const int TokenSize = 44;
+    
     public Guid Id { get; init; }
     
     public Guid UserId { get; init; }
@@ -12,7 +14,7 @@ public sealed class RefreshToken
     
     public DateTime CreatedAt { get; init; }
     
-    public DateTime? RevokedAt { get; set; }
+    public DateTime? RevokedAt { get; internal set; }
 
     
     public bool HasExpired(DateTime currentTime) => currentTime >= ExpiresAt;

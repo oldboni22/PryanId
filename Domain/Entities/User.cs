@@ -30,4 +30,12 @@ public sealed class User : IdentityUser<Guid>
         
         token?.RevokedAt = currentTime;
     }
+
+    public void RevokeAllRefreshTokens(DateTime currentTime)
+    {
+        foreach (var token in _refreshTokens.Where(token => token.IsActive(currentTime)))
+        {
+            token.RevokedAt = currentTime;
+        }
+    }
 }

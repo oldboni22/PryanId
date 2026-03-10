@@ -24,8 +24,17 @@ public sealed class UserConfiguration : IEntityTypeConfiguration<User>
         builder.OwnsMany<RefreshToken>(user => user.RefreshTokens, tokenBuilder =>
         {
             tokenBuilder.ToTable("RefreshTokens");
-            tokenBuilder.WithOwner().HasForeignKey(nameof(RefreshToken.UserId));
             tokenBuilder.HasKey(nameof(RefreshToken.Id));
+            
+            tokenBuilder.WithOwner().HasForeignKey(nameof(RefreshToken.UserId));
+            
+            tokenBuilder.Property(nameof(RefreshToken.Token))
+                .HasMaxLength(RefreshToken.TokenSize)
+                .IsFixedLength()
+                .IsRequired();
+            
+            tokenBuilder.HasIndex(nameof(RefreshToken.Token))
+                .IsUnique();
         });
     }
 }

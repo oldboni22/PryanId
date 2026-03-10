@@ -1,10 +1,11 @@
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using Domain.Entities;
 
 namespace Application.Contracts.JWT;
 
 public interface IJwtProvider
 {
-    Task<string> Generate(Guid userId, string email, IEnumerable<string> roles);    
+    Task<TokenPair> Generate(User user);    
 }
