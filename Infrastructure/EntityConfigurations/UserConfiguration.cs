@@ -17,5 +17,15 @@ public sealed class UserConfiguration : IEntityTypeConfiguration<User>
             .HasMaxLength(25);
 
         builder.HasMany(user => user.UserClients);
+        
+        var navigation = builder.Metadata.FindNavigation(nameof(User.RefreshTokens));
+        navigation!.SetPropertyAccessMode(PropertyAccessMode.Field);
+
+        builder.OwnsMany<RefreshToken>(user => user.RefreshTokens, tokenBuilder =>
+        {
+            tokenBuilder.ToTable("RefreshTokens");
+            tokenBuilder.WithOwner().HasForeignKey(nameof(RefreshToken.UserId));
+            tokenBuilder.HasKey(nameof(RefreshToken.Id));
+        });
     }
 }

@@ -2,7 +2,7 @@ using Domain.Enums;
 
 namespace Domain.Entities;
 
-public class UserClient
+public sealed class UserClient
 {
     public Guid UserId { get; init; }
     

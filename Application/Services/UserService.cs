@@ -1,14 +1,11 @@
-﻿using System;
-using System.Linq;
-using System.Threading.Tasks;
-using Application.Models.User;
+﻿using Application.Models.User;
 using Domain;
 using Domain.Entities;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Shared.ResultPattern;
 
-namespace Application;
+namespace Application.Services;
 
 public interface IUserService
 {
