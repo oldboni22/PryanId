@@ -32,15 +32,10 @@ public sealed class AuthService(
         
         var refreshToken = user.RefreshTokens
             .FirstOrDefault(t => t.Token == oldTokenLiteral);
-
-        if (refreshToken is null)
-        {
-            return Result<TokenPair>.FromError(AuthErrors.InvalidRefreshToken);
-        }
         
         var currentTime = timeProvider.GetUtcNow().UtcDateTime;
         
-        if (refreshToken.RevokedAt is not null)
+        if (refreshToken!.RevokedAt is not null)
         {
             user.RevokeAllRefreshTokens(currentTime);
             await dbContext.SaveChangesAsync(ct);
