@@ -1,6 +1,9 @@
 using Application.Contracts.Db;
 using Application.Contracts.JWT;
+using Application.Models.User;
 using Domain;
+using Domain.Entities;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using Shared.ResultPattern;
@@ -12,15 +15,18 @@ public interface IAuthService
     public Task<Result<TokenPair>> RefreshAsync(string oldTokenLiteral, CancellationToken ct = default);
     
     public Task<Result> InvalidateAllSessions(Guid userId, CancellationToken ct = default);
+
+    public Task<Result<TokenPair>> LoginAsync(LoginUserModel loginUserModel);
 }
 
 public sealed class AuthService(
     IOptions<JwtOptions> options,
     IUserDbContext dbContext,
+    UserManager<User> userManager,
     IJwtProvider jwtProvider,
     TimeProvider timeProvider) : IAuthService
 {
-    public async Task<Result<TokenPair>> RefreshAsync(string oldTokenLiteral, CancellationToken ct)
+    public async Task<Result<TokenPair>> RefreshAsync(string oldTokenLiteral, CancellationToken ct = default)
     {
         var user = await dbContext.Users
             .Include(u => u.RefreshTokens)
@@ -58,7 +64,7 @@ public sealed class AuthService(
         return Result<TokenPair>.Success(tokens);
     }
 
-    public async Task<Result> InvalidateAllSessions(Guid userId, CancellationToken ct)
+    public async Task<Result> InvalidateAllSessions(Guid userId, CancellationToken ct = default)
     {
         var user = await dbContext.Users
             .Include(u => u.RefreshTokens)
@@ -75,5 +81,34 @@ public sealed class AuthService(
         await dbContext.SaveChangesAsync(ct);
         
         return Result.Success();
+    }
+    
+    public async Task<Result<TokenPair>> LoginAsync(LoginUserModel loginUserModel)
+    {
+        var result = Result.Success();
+        
+        var user = await userManager.FindByEmailAsync(loginUserModel.Email);
+        
+        if (user is null || !await userManager.CheckPasswordAsync(user, loginUserModel.Password))
+        {
+            result.AddError(DomainErrors.InvalidCredentials);
+            return Result<TokenPair>.FromResult(result);
+        }
+        
+        var isPasswordCorrect = await userManager.CheckPasswordAsync(user, loginUserModel.Password);
+
+        if (!isPasswordCorrect)
+        {
+            await userManager.AccessFailedAsync(user);
+            
+            result.AddError(DomainErrors.InvalidCredentials);
+            return Result<TokenPair>.FromResult(result);
+        }
+        
+        await userManager.ResetAccessFailedCountAsync(user);
+        
+        var pair = await jwtProvider.Generate(user.Email!, user.Id);
+        
+        return Result<TokenPair>.FromResult(result, pair);
     }
 }
