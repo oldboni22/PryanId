@@ -1,11 +1,11 @@
-using Application;
+using Application.Services;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Api.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-public class UserController(UserService userService) : Controller
+public class UserController(UserService userService) : ControllerBase
 {
     
 }

@@ -13,7 +13,7 @@ public interface IUserService
     
     Task<Result<ReadUserModel>> GetAsync(Guid id, Guid callerId);
     
-    Task<Result<ReadUserModel>> LoginAsync(string email, string password);
+    Task<Result<ReadUserModel>> LoginAsync(LoginUserModel loginUserModel);
     
     Task<Result<ReadUserModel>> UpdateDataAsync(Guid userId, UpdateUserDataModel updateUserModel);
     
@@ -70,19 +70,19 @@ public sealed class UserService(UserManager<User> userManager) : IUserService
         return Result<ReadUserModel>.FromResult(result, model);
     }
 
-    public async Task<Result<ReadUserModel>> LoginAsync(string email, string password)
+    public async Task<Result<ReadUserModel>> LoginAsync(LoginUserModel loginUserModel)
     {
         var result = Result.Success();
         
-        var user = await userManager.FindByEmailAsync(email);
+        var user = await userManager.FindByEmailAsync(loginUserModel.Email);
         
-        if (user is null || !await userManager.CheckPasswordAsync(user, password))
+        if (user is null || !await userManager.CheckPasswordAsync(user, loginUserModel.Password))
         {
             result.AddError(DomainErrors.InvalidCredentials);
             return Result<ReadUserModel>.FromResult(result);
         }
         
-        var isPasswordCorrect = await userManager.CheckPasswordAsync(user, password);
+        var isPasswordCorrect = await userManager.CheckPasswordAsync(user, loginUserModel.Password);
 
         if (!isPasswordCorrect)
         {

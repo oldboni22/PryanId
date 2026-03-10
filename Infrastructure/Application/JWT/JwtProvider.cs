@@ -12,9 +12,9 @@ namespace Infrastructure.Application.JWT;
 public sealed class JwtProvider(
     IOptions<JwtOptions> options, ISigningCredentialStore credentialStore, TimeProvider timeProvider, JsonWebTokenHandler handler) : IJwtProvider
 {
-    public async Task<TokenPair> Generate(User user)
+    public async Task<TokenPair> Generate(string email, Guid userId)
     {
-        var accessToken = await GenerateAccessToken(user.Id, user.Email!);
+        var accessToken = await GenerateAccessToken(userId, email);
         var refreshToken = GenerateRefreshToken();
         
         return new TokenPair(accessToken, refreshToken);

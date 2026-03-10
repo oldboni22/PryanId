@@ -7,5 +7,5 @@ namespace Application.Contracts.JWT;
 
 public interface IJwtProvider
 {
-    Task<TokenPair> Generate(User user);    
+    Task<TokenPair> Generate(string email, Guid userId);    
 }
