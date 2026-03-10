@@ -1,14 +1,12 @@
 using Application;
 using Application.Auth;
-using Domain;
+using Application.Contracts.JWT;
 using Domain.Entities;
 using Domain.Enums;
 using Duende.IdentityServer;
 using Infrastructure;
-using Infrastructure.Application.JWT;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using Serilog;
 using Shared;

@@ -1,9 +1,7 @@
-using Application;
+using Application.Contracts.Db;
 using Application.Contracts.JWT;
-using Domain.Entities;
 using Infrastructure.Application.JWT;
 using Infrastructure.Identity;
-using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -38,14 +36,15 @@ public static class DiExtensions
         {
             var connectionString = configuration.ExtractConnectionString(SectionNames.IdentityStorage);
 
-            return services.AddDbContext<UserDbContext>(options => options.UseNpgsql(connectionString));
+            return 
+                services
+                    .AddDbContext<UserDbContext>(options => options.UseNpgsql(connectionString))
+                    .AddScoped<IUserDbContext>(sp => sp.GetRequiredService<UserDbContext>());
         }
 
         private IServiceCollection AddJwtProvider(IConfiguration configuration)
         {
-            services.AddOptions<JwtOptions>()
-                .Bind(configuration.GetSection(JwtOptions.SectionName))
-                .ValidateOnStart();
+            services.Configure<JwtOptions>(configuration.GetSection(JwtOptions.SectionName));
             
             return services
                 .AddScoped<IJwtProvider, JwtProvider>();

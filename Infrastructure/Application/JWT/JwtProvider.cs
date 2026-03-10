@@ -3,13 +3,14 @@ using System.Security.Cryptography;
 using Application.Contracts.JWT;
 using Domain.Entities;
 using Duende.IdentityServer.Stores;
+using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.JsonWebTokens;
 using Microsoft.IdentityModel.Tokens;
 
 namespace Infrastructure.Application.JWT;
 
 public sealed class JwtProvider(
-    JwtOptions options, ISigningCredentialStore credentialStore, TimeProvider timeProvider, JsonWebTokenHandler handler) : IJwtProvider
+    IOptions<JwtOptions> options, ISigningCredentialStore credentialStore, TimeProvider timeProvider, JsonWebTokenHandler handler) : IJwtProvider
 {
     public async Task<TokenPair> Generate(User user)
     {
@@ -35,9 +36,9 @@ public sealed class JwtProvider(
         return handler.CreateToken(new SecurityTokenDescriptor
         {
             Subject = new ClaimsIdentity(claims),
-            Issuer =  options.Issuer,
-            Audience = options.Audience,
-            Expires = timeProvider.GetUtcNow().AddMinutes(options.ExpiryMinutes).UtcDateTime,
+            Issuer =  options.Value.Issuer,
+            Audience = options.Value.Audience,
+            Expires = timeProvider.GetUtcNow().AddMinutes(options.Value.AccessExpiryMinutes).UtcDateTime,
             IssuedAt = timeProvider.GetUtcNow().UtcDateTime,
             
             SigningCredentials = credentials

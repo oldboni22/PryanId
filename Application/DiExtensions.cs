@@ -1,3 +1,4 @@
+using Application.Services;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -10,7 +11,8 @@ public static class DiExtensions
         public IServiceCollection AddApplication(IConfiguration configuration)
         {
             return services
-                .AddScoped<IUserService, UserService>();
+                .AddScoped<IUserService, UserService>()
+                .AddScoped<IAuthService, AuthService>();
         }
     }
 }
