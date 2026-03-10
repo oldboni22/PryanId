@@ -10,16 +10,13 @@ namespace Api.Controllers;
 [Route("api/[controller]")]
 public sealed class AuthController(IAuthService authService, IUserService userService) : ControllerBase
 {
-    [HttpPost]
+    [HttpPost("login")]
     public async Task<ActionResult<TokenPair>> LoginAsync([FromBody] LoginUserModel model, CancellationToken ct)
     {
         var loginResult = await userService.LoginAsync(model);
-
-        if (!loginResult.IsSuccess)
-        {
-            return this.ParseFailedResult(loginResult);
-        }
         
-        return await authService.IssueAsync(loginResult.Value.Id, loginResult.Value.Email!, ct);
+        return loginResult.IsSuccess
+            ? loginResult.Value
+            : this.ParseFailedResult(loginResult);
     }
 }

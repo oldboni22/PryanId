@@ -1,4 +1,5 @@
-﻿using Application.Models.User;
+﻿using Application.Contracts.JWT;
+using Application.Models.User;
 using Domain;
 using Domain.Entities;
 using Microsoft.AspNetCore.Identity;
@@ -13,7 +14,7 @@ public interface IUserService
     
     Task<Result<ReadUserModel>> GetAsync(Guid id, Guid callerId);
     
-    Task<Result<ReadUserModel>> LoginAsync(LoginUserModel loginUserModel);
+    Task<Result<TokenPair>> LoginAsync(LoginUserModel loginUserModel);
     
     Task<Result<ReadUserModel>> UpdateDataAsync(Guid userId, UpdateUserDataModel updateUserModel);
     
@@ -24,7 +25,7 @@ public interface IUserService
     Task<Result> DeleteAsync(Guid userId);
 }
 
-public sealed class UserService(UserManager<User> userManager) : IUserService
+public sealed class UserService(UserManager<User> userManager, IJwtProvider jwtProvider) : IUserService
 {
     public async Task<Result> CreateAsync(CreateUserModel createUserModel)
     {
@@ -70,7 +71,7 @@ public sealed class UserService(UserManager<User> userManager) : IUserService
         return Result<ReadUserModel>.FromResult(result, model);
     }
 
-    public async Task<Result<ReadUserModel>> LoginAsync(LoginUserModel loginUserModel)
+    public async Task<Result<TokenPair>> LoginAsync(LoginUserModel loginUserModel)
     {
         var result = Result.Success();
         
@@ -79,7 +80,7 @@ public sealed class UserService(UserManager<User> userManager) : IUserService
         if (user is null || !await userManager.CheckPasswordAsync(user, loginUserModel.Password))
         {
             result.AddError(DomainErrors.InvalidCredentials);
-            return Result<ReadUserModel>.FromResult(result);
+            return Result<TokenPair>.FromResult(result);
         }
         
         var isPasswordCorrect = await userManager.CheckPasswordAsync(user, loginUserModel.Password);
@@ -89,13 +90,14 @@ public sealed class UserService(UserManager<User> userManager) : IUserService
             await userManager.AccessFailedAsync(user);
             
             result.AddError(DomainErrors.InvalidCredentials);
-            return Result<ReadUserModel>.FromResult(result);
+            return Result<TokenPair>.FromResult(result);
         }
         
         await userManager.ResetAccessFailedCountAsync(user);
         
-        var model = new ReadUserModel(user.Id, user.UserName!, user.Email!);
-        return Result<ReadUserModel>.FromResult(result, model);
+        var pair = await jwtProvider.Generate(user.Email!, user.Id);
+        
+        return Result<TokenPair>.FromResult(result, pair);
     }
     
     public async Task<Result<ReadUserModel>> UpdateDataAsync(Guid userId, UpdateUserDataModel updateUserModel)

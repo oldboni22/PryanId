@@ -1,8 +1,6 @@
 using Application.Contracts.Db;
 using Application.Contracts.JWT;
 using Domain;
-using Domain.Entities;
-using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using Shared.ResultPattern;
@@ -11,8 +9,6 @@ namespace Application.Services;
 
 public interface IAuthService
 {
-    public Task<TokenPair> IssueAsync(Guid userId, string email, CancellationToken ct);
-    
     public Task<Result<TokenPair>> RefreshAsync(string oldTokenLiteral, CancellationToken ct = default);
     
     public Task<Result> InvalidateAllSessions(Guid userId, CancellationToken ct = default);
@@ -24,11 +20,6 @@ public sealed class AuthService(
     IJwtProvider jwtProvider,
     TimeProvider timeProvider) : IAuthService
 {
-    public Task<TokenPair> IssueAsync(Guid userId, string email, CancellationToken ct)
-    {
-        return jwtProvider.Generate(email, userId);
-    }
-
     public async Task<Result<TokenPair>> RefreshAsync(string oldTokenLiteral, CancellationToken ct)
     {
         var user = await dbContext.Users
@@ -41,7 +32,7 @@ public sealed class AuthService(
         }
         
         var refreshToken = user.RefreshTokens
-            .FirstOrDefault(t => t.Token == oldTokenLiteral);
+            .First(t => t.Token == oldTokenLiteral);
         
         var currentTime = timeProvider.GetUtcNow().UtcDateTime;
         
