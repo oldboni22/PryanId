@@ -2,7 +2,11 @@ namespace Shared.ResultPattern;
 
 public class Result
 {
-    protected readonly List<Error> _errors = [];
+    protected internal Result(List<Error> errors) => _errors = errors;
+
+    protected internal Result() => _errors = [];
+    
+    protected readonly List<Error> _errors;
     
     public IEnumerable<Error> Errors => _errors;
     
@@ -11,6 +15,8 @@ public class Result
     public void AddError(Error error) => _errors.Add(error);
     
     public static Result Success() => new();
+    
+    public static Result FromError(Error error) => new Result([ error ]);
 }
 
 public class Result<TValue> : Result

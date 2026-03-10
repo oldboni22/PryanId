@@ -1,4 +1,7 @@
-﻿using Application.Models.User;
+﻿using System;
+using System.Linq;
+using System.Threading.Tasks;
+using Application.Models.User;
 using Domain;
 using Domain.Entities;
 using Microsoft.AspNetCore.Identity;
@@ -48,8 +51,6 @@ public sealed class UserService(UserManager<User> userManager) : IUserService
 
     public async Task<Result<ReadUserModel>> GetAsync(Guid id, Guid callerId)
     {
-        var result = Result.Success();
-        
         var model = await userManager.Users
             .AsNoTracking()
             .Where(user => user.Id == id)
@@ -60,24 +61,18 @@ public sealed class UserService(UserManager<User> userManager) : IUserService
             )
             .FirstOrDefaultAsync();
         
-        if (model is null)
-        {
-            result.AddError(DomainErrors.UserNotFound);
-        }
-        
-        return Result<ReadUserModel>.FromResult(result, model);
+        return model is null
+            ? Result<ReadUserModel>.FromError(DomainErrors.UserNotFound)
+            : Result<ReadUserModel>.Success(model);
     }
     
     public async Task<Result<ReadUserModel>> UpdateDataAsync(Guid userId, UpdateUserDataModel updateUserModel)
     {
-        var result = Result.Success();
-
         var user = await userManager.FindByIdAsync(userId.ToString());
 
         if (user is null)
         {
-            result.AddError(DomainErrors.UserNotFound);
-            return Result<ReadUserModel>.FromResult(result);
+            return Result<ReadUserModel>.FromError(DomainErrors.UserNotFound);
         }
 
         if(updateUserModel.NewEmail is not  null)
@@ -92,26 +87,26 @@ public sealed class UserService(UserManager<User> userManager) : IUserService
 
         if (updateResult.Succeeded)
         {
-            return Result<ReadUserModel>.FromResult(result, new ReadUserModel(userId, user.UserName!, user.Email!));
+            return Result<ReadUserModel>.Success(new ReadUserModel(userId, user.UserName!, user.Email!));
         }
         
+        var result = Result.Success();
         EnrichResultFromIdentityResult(result, updateResult);
         return Result<ReadUserModel>.FromResult(result);
     }
 
     public async Task<Result> UpdatePasswordAsync(Guid userId, UpdatePasswordModel updateModel)
     {
-        var result = Result.Success();
-        
         var user = await userManager.FindByIdAsync(userId.ToString());
         if (user is null)
         {
-            result.AddError(DomainErrors.UserNotFound);
-            return result;
+            return Result.FromError(DomainErrors.UserNotFound);
         }
         
         var identityResult = await userManager.ChangePasswordAsync(user, updateModel.OldPassword, updateModel.NewPassword);
 
+        var result = Result.Success();
+        
         if (!identityResult.Succeeded)
         {
             EnrichResultFromIdentityResult(result, identityResult);
@@ -122,18 +117,17 @@ public sealed class UserService(UserManager<User> userManager) : IUserService
     
     public async Task<Result> RecoverPasswordAsync(Guid userId, string newPassword)
     {
-        var result = Result.Success();
-        
         var user = await userManager.FindByIdAsync(userId.ToString());
         if (user is null)
         {
-            result.AddError(DomainErrors.UserNotFound);
-            return result;
+            return Result.FromError(DomainErrors.UserNotFound);
         }
         
         await userManager.RemovePasswordAsync(user);
         var identityResult = await userManager.AddPasswordAsync(user, newPassword);
 
+        var result = Result.Success();
+        
         if (!identityResult.Succeeded)
         {
             EnrichResultFromIdentityResult(result, identityResult);
@@ -144,18 +138,17 @@ public sealed class UserService(UserManager<User> userManager) : IUserService
     
     public async Task<Result> DeleteAsync(Guid userId)
     {
-        var result = Result.Success();
-        
         var user = await userManager.FindByIdAsync(userId.ToString());
 
         if (user is null)
         {
-            result.AddError(DomainErrors.UserNotFound);
-            return result;
+            return Result.FromError(DomainErrors.UserNotFound);
         }
         
         var deleteResult = await userManager.DeleteAsync(user);
 
+        var result = Result.Success();
+        
         if (!deleteResult.Succeeded)
         {
             EnrichResultFromIdentityResult(result, deleteResult);

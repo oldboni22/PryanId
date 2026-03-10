@@ -1,3 +1,7 @@
+using System;
+using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 using Application.Contracts.Db;
 using Application.Contracts.JWT;
 using Application.Models.User;
@@ -85,14 +89,11 @@ public sealed class AuthService(
     
     public async Task<Result<TokenPair>> LoginAsync(LoginUserModel loginUserModel)
     {
-        var result = Result.Success();
-        
         var user = await userManager.FindByEmailAsync(loginUserModel.Email);
         
         if (user is null || !await userManager.CheckPasswordAsync(user, loginUserModel.Password))
         {
-            result.AddError(DomainErrors.InvalidCredentials);
-            return Result<TokenPair>.FromResult(result);
+            return Result<TokenPair>.FromError(DomainErrors.InvalidCredentials);
         }
         
         var isPasswordCorrect = await userManager.CheckPasswordAsync(user, loginUserModel.Password);
@@ -100,15 +101,13 @@ public sealed class AuthService(
         if (!isPasswordCorrect)
         {
             await userManager.AccessFailedAsync(user);
-            
-            result.AddError(DomainErrors.InvalidCredentials);
-            return Result<TokenPair>.FromResult(result);
+            return Result<TokenPair>.FromError(DomainErrors.InvalidCredentials);
         }
         
         await userManager.ResetAccessFailedCountAsync(user);
         
         var pair = await jwtProvider.Generate(user.Email!, user.Id);
         
-        return Result<TokenPair>.FromResult(result, pair);
+        return Result<TokenPair>.Success(pair);
     }
 }
