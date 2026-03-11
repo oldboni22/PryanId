@@ -6,7 +6,9 @@ using Domain.Entities;
 using Domain.Enums;
 using Duende.IdentityServer;
 using Infrastructure;
+using Infrastructure.Identity.Auth;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Serilog;
@@ -110,10 +112,29 @@ internal static class HostingExtensions
                     options.ClientSecret = connectionOptions.ClientSecret;
                 });
             
+            builder.Services
+                .RegisterAuthPolicies(builder.Configuration)
+                .AddInfrastructure(builder.Configuration)
+                .AddApplication(builder.Configuration)
+                .AddControllers();
             
-            var emailRecoverApiKey = builder.Configuration.ExtractApiKey(ApiKeyOptions.PasswordRecover);
+            identityServerBuilder.AddAspNetIdentity<User>();
             
-            builder.Services.AddAuthorization(options =>
+            return builder.Build();
+        }
+    }
+
+    extension(IServiceCollection services)
+    {
+        private IServiceCollection RegisterAuthPolicies(IConfiguration configuration)
+        {
+            var emailRecoverApiKey = configuration.ExtractApiKey(ApiKeyOptions.PasswordRecover);
+
+            services
+                .AddSingleton<IAuthorizationHandler, ApiKeyHandler>()
+                .AddScoped<IAuthorizationHandler, ProjectRoleHandler>();
+            
+            return services.AddAuthorization(options =>
             {
                 options.AddPolicy(ProjectRoleRequirement.Viewer, policy =>
                 {
@@ -142,18 +163,9 @@ internal static class HostingExtensions
                 options.AddPolicy(ApiKeyRequirement.EmailRecovery, policy 
                     => policy.Requirements.Add(new ApiKeyRequirement(emailRecoverApiKey)));
             });
-            
-            builder.Services
-                .AddInfrastructure(builder.Configuration)
-                .AddApplication(builder.Configuration)
-                .AddControllers();
-            
-            identityServerBuilder.AddAspNetIdentity<User>();
-            
-            return builder.Build();
         }
     }
-
+    
     extension(IConfiguration configuration)
     {
         public string ExtractApiKey(string sections)
