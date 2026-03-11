@@ -115,17 +115,29 @@ internal static class HostingExtensions
             
             builder.Services.AddAuthorization(options =>
             {
-                options.AddPolicy(ProjectRoleRequirement.Viewer, policy => 
-                    policy.Requirements.Add(new ProjectRoleRequirement(UserClientRole.Viewer)));
+                options.AddPolicy(ProjectRoleRequirement.Viewer, policy =>
+                {
+                    policy.RequireAuthenticatedUser();
+                    policy.Requirements.Add(new ProjectRoleRequirement(UserClientRole.Viewer));
+                });
         
-                options.AddPolicy(ProjectRoleRequirement.Editor, policy => 
-                    policy.Requirements.Add(new ProjectRoleRequirement(UserClientRole.Editor)));
+                options.AddPolicy(ProjectRoleRequirement.Editor, policy =>
+                {
+                    policy.RequireAuthenticatedUser();
+                    policy.Requirements.Add(new ProjectRoleRequirement(UserClientRole.Editor));
+                });
         
-                options.AddPolicy(ProjectRoleRequirement.Admin, policy => 
-                    policy.Requirements.Add(new ProjectRoleRequirement(UserClientRole.Admin)));
+                options.AddPolicy(ProjectRoleRequirement.Admin, policy =>
+                {
+                    policy.RequireAuthenticatedUser();
+                    policy.Requirements.Add(new ProjectRoleRequirement(UserClientRole.Admin));
+                });
         
-                options.AddPolicy(ProjectRoleRequirement.Owner, policy => 
-                    policy.Requirements.Add(new ProjectRoleRequirement(UserClientRole.Owner)));
+                options.AddPolicy(ProjectRoleRequirement.Owner, policy =>
+                {
+                    policy.RequireAuthenticatedUser();
+                    policy.Requirements.Add(new ProjectRoleRequirement(UserClientRole.Owner));
+                });
                 
                 options.AddPolicy(ApiKeyRequirement.EmailRecovery, policy 
                     => policy.Requirements.Add(new ApiKeyRequirement(emailRecoverApiKey)));
