@@ -161,6 +161,8 @@ internal static class HostingExtensions
             app.UseSerilogRequestLogging();
 
             app.UseIdentityServer();
+            
+            app.UseAuthentication();
             app.UseAuthorization();
 
             app.MapControllers();
