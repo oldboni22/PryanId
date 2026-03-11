@@ -10,7 +10,10 @@ using Microsoft.IdentityModel.Tokens;
 namespace Infrastructure.Application.JWT;
 
 public sealed class JwtProvider(
-    IOptions<JwtOptions> options, ISigningCredentialStore credentialStore, TimeProvider timeProvider, JsonWebTokenHandler handler) : IJwtProvider
+    IOptions<JwtOptions> options, 
+    ISigningCredentialStore credentialStore, 
+    TimeProvider timeProvider, 
+    JsonWebTokenHandler handler) : IJwtProvider
 {
     public async Task<TokenPair> Generate(string email, Guid userId)
     {
@@ -38,6 +41,7 @@ public sealed class JwtProvider(
             Subject = new ClaimsIdentity(claims),
             Issuer =  options.Value.Issuer,
             Audience = options.Value.Audience,
+            
             Expires = timeProvider.GetUtcNow().AddMinutes(options.Value.AccessExpiryMinutes).UtcDateTime,
             IssuedAt = timeProvider.GetUtcNow().UtcDateTime,
             
