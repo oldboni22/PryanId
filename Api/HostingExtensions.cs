@@ -28,27 +28,11 @@ internal static class HostingExtensions
 {
     extension(WebApplicationBuilder builder)
     {
-        private WebApplicationBuilder ConfigureSerilog()
+        private IIdentityServerBuilder ConfigureIdentityServer()
         {
-            builder.Host.UseSerilog((context, lc) => lc
-                .WriteTo.Console(
-                    outputTemplate:
-                    "[{Timestamp:HH:mm:ss} {Level}] {SourceContext}{NewLine}{Message:lj}{NewLine}{Exception}{NewLine}")
-                .Enrich.FromLogContext()
-                .ReadFrom.Configuration(context.Configuration));
+            var jwtOptions = builder.Configuration.ExtractOptions<JwtOptions>(JwtOptions.SectionName);
             
-            return builder;
-        }
-        
-        public WebApplication ConfigureServices()
-        {
-            builder.ConfigureSerilog();
-            builder.Services.AddHttpContextAccessor();
-           
-            var jwtOptions = builder.Configuration.GetSection(JwtOptions.SectionName).Get<JwtOptions>()
-                             ?? throw new InvalidOperationException();
-            
-            var identityServerBuilder = builder.Services
+            return builder.Services
                 .AddIdentityServer(options =>
                 {
                     options.Events.RaiseErrorEvents = true;
@@ -78,42 +62,30 @@ internal static class HostingExtensions
                         .UseNpgsql(connectionString, dbOpts => dbOpts.MigrationsAssembly(typeof(Program).Assembly.FullName));
                 })
                 .AddDeveloperSigningCredential();
+        }
+        
+        private WebApplicationBuilder ConfigureSerilog()
+        {
+            builder.Host.UseSerilog((context, lc) => lc
+                .WriteTo.Console(
+                    outputTemplate:
+                    "[{Timestamp:HH:mm:ss} {Level}] {SourceContext}{NewLine}{Message:lj}{NewLine}{Exception}{NewLine}")
+                .Enrich.FromLogContext()
+                .ReadFrom.Configuration(context.Configuration));
             
-            builder.Services.AddAuthentication(options =>
-                {
-                    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
-                    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
-                })
-                .AddJwtBearer(options =>
-                {
-                    options.Authority = jwtOptions.Issuer;
-                    options.Audience =  jwtOptions.Audience;
-                    
-                    options.TokenValidationParameters = new TokenValidationParameters
-                    {
-                        ValidateIssuer = true,
-                        ValidIssuer = jwtOptions.Issuer,
-                        ValidateAudience = true,
-                        ValidAudience = jwtOptions.Audience,
-                        ValidateLifetime = true
-                    };
-                    
-                    options.RequireHttpsMetadata = false;
-                })
-                .AddGoogle(options =>
-                {
-                    options.SignInScheme = IdentityServerConstants.ExternalCookieAuthenticationScheme;
-
-                    var connectionOptions =
-                        builder.Configuration.ExtractOptions<GoogleAuthConnectionOptions>(
-                            GoogleAuthConnectionOptions.SectionName);
-
-                    options.ClientId = connectionOptions.ClientId;
-                    options.ClientSecret = connectionOptions.ClientSecret;
-                });
+            return builder;
+        }
+        
+        public WebApplication ConfigureServices()
+        {
+            builder.ConfigureSerilog();
+            
+            var identityServerBuilder = builder.ConfigureIdentityServer();
             
             builder.Services
-                .RegisterAuthPolicies(builder.Configuration)
+                .AddHttpContextAccessor()
+                .AddAuthBearer(builder.Configuration)
+                .AddAuthPolicies(builder.Configuration)
                 .AddInfrastructure(builder.Configuration)
                 .AddApplication(builder.Configuration)
                 .AddControllers();
@@ -124,9 +96,55 @@ internal static class HostingExtensions
         }
     }
 
+    extension(WebApplication app)
+    {
+        public WebApplication ConfigurePipeline()
+        {
+            app.UseSerilogRequestLogging();
+
+            app.UseIdentityServer();
+            
+            app.UseAuthentication();
+            app.UseAuthorization();
+
+            app.MapControllers();
+            
+            return app;
+        }
+    }
+    
     extension(IServiceCollection services)
     {
-        private IServiceCollection RegisterAuthPolicies(IConfiguration configuration)
+        private IServiceCollection AddAuthBearer(IConfiguration configuration)
+        {
+            var jwtOptions = configuration.ExtractOptions<JwtOptions>(JwtOptions.SectionName);
+            
+            services.AddAuthentication(options =>
+                {
+                    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+                    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+                })
+                .AddJwtBearer(options =>
+                {
+                    options.Authority = jwtOptions.Issuer;
+                    options.Audience = jwtOptions.Audience;
+
+                    options.TokenValidationParameters = new TokenValidationParameters
+                    {
+                        ValidateIssuer = true,
+                        ValidIssuer = jwtOptions.Issuer,
+                        ValidateAudience = true,
+                        ValidAudience = jwtOptions.Audience,
+                        ValidateLifetime = true
+                    };
+
+                    options.RequireHttpsMetadata = false;
+                });
+            
+            return services;
+        }
+        
+        private IServiceCollection AddAuthPolicies(IConfiguration configuration)
         {
             var emailRecoverApiKey = configuration.ExtractApiKey(ApiKeyOptions.PasswordRecover);
 
@@ -175,23 +193,6 @@ internal static class HostingExtensions
                        .Get<ApiKeyOptions>()?
                        .Key
                    ?? throw new InvalidOperationException();
-        }
-    }
-    
-    extension(WebApplication app)
-    {
-        public WebApplication ConfigurePipeline()
-        {
-            app.UseSerilogRequestLogging();
-
-            app.UseIdentityServer();
-            
-            app.UseAuthentication();
-            app.UseAuthorization();
-
-            app.MapControllers();
-            
-            return app;
         }
     }
 }
