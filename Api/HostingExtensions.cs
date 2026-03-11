@@ -83,6 +83,7 @@ internal static class HostingExtensions
             var identityServerBuilder = builder.ConfigureIdentityServer();
             
             builder.Services
+                .AddExceptionHandler<GlobalExceptionHandler>()
                 .AddHttpContextAccessor()
                 .AddAuthBearer(builder.Configuration)
                 .AddAuthPolicies(builder.Configuration)
@@ -100,6 +101,7 @@ internal static class HostingExtensions
     {
         public WebApplication ConfigurePipeline()
         {
+            app.UseExceptionHandler();
             app.UseSerilogRequestLogging();
 
             app.UseIdentityServer();
