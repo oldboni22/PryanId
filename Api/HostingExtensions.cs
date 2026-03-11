@@ -1,6 +1,7 @@
 using Application;
 using Application.Auth;
 using Application.Contracts.JWT;
+using Application.Contracts.Options;
 using Domain.Entities;
 using Domain.Enums;
 using Duende.IdentityServer;
@@ -109,6 +110,9 @@ internal static class HostingExtensions
                     options.ClientSecret = connectionOptions.ClientSecret;
                 });
             
+            
+            var emailRecoverApiKey = builder.Configuration.ExtractApiKey(ApiKeyOptions.PasswordRecover);
+            
             builder.Services.AddAuthorization(options =>
             {
                 options.AddPolicy(ProjectRoleRequirement.Viewer, policy => 
@@ -122,6 +126,9 @@ internal static class HostingExtensions
         
                 options.AddPolicy(ProjectRoleRequirement.Owner, policy => 
                     policy.Requirements.Add(new ProjectRoleRequirement(UserClientRole.Owner)));
+                
+                options.AddPolicy(ApiKeyRequirement.EmailRecovery, policy 
+                    => policy.Requirements.Add(new ApiKeyRequirement(emailRecoverApiKey)));
             });
             
             builder.Services
@@ -135,6 +142,18 @@ internal static class HostingExtensions
         }
     }
 
+    extension(IConfiguration configuration)
+    {
+        public string ExtractApiKey(string sections)
+        {
+            return configuration
+                       .GetSection(ApiKeyRequirement.EmailRecovery)
+                       .Get<ApiKeyOptions>()?
+                       .Key
+                   ?? throw new InvalidOperationException();
+        }
+    }
+    
     extension(WebApplication app)
     {
         public WebApplication ConfigurePipeline()

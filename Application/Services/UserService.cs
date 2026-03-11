@@ -20,7 +20,7 @@ public interface IUserService
     
     Task<Result> UpdatePasswordAsync(Guid userId, UpdatePasswordModel updateModel);
     
-    Task<Result> RecoverPasswordAsync(Guid userId, string newPassword);
+    Task<Result> RecoverPasswordAsync(PasswordRecoveryModel model);
     
     Task<Result> DeleteAsync(Guid userId);
 }
@@ -115,16 +115,16 @@ public sealed class UserService(UserManager<User> userManager) : IUserService
         return result;
     }
     
-    public async Task<Result> RecoverPasswordAsync(Guid userId, string newPassword)
+    public async Task<Result> RecoverPasswordAsync(PasswordRecoveryModel model)
     {
-        var user = await userManager.FindByIdAsync(userId.ToString());
+        var user = await userManager.FindByEmailAsync(model.Email);
         if (user is null)
         {
             return Result.FromError(DomainErrors.UserNotFound);
         }
         
         await userManager.RemovePasswordAsync(user);
-        var identityResult = await userManager.AddPasswordAsync(user, newPassword);
+        var identityResult = await userManager.AddPasswordAsync(user, model.NewPassword);
 
         var result = Result.Success();
         
