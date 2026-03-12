@@ -13,10 +13,10 @@ public static class DomainErrors
     #region Client
 
     public static Error ClientExists =>
-        new Error("Client.Exists", "The client with given client id already exists.", ErrorType.Validation);
+        new Error("Client.Exists", "The client with given client id already exists.", ErrorType.Forbidden);
 
     public static Error ClientNotFound =>
-        new Error("Client.NotFound", "The client was not found.", ErrorType.NotFound);
+        new Error("Client.NotFound", "The client was not found.", ErrorType.Forbidden);
     
     #endregion
 
