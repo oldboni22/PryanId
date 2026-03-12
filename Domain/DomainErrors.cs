@@ -9,6 +9,16 @@ public static class DomainErrors
     
     public static Error InvalidCredentials =>
         new Error("Credentials.Invalid", "Invalid user credentials.", ErrorType.Unauthorized);
+
+    #region Client
+
+    public static Error ClientExists =>
+        new Error("Client.Exists", "The client with given client id already exists.", ErrorType.Validation);
+
+    public static Error ClientNotFound =>
+        new Error("Client.NotFound", "The client was not found.", ErrorType.NotFound);
+    
+    #endregion
     
     #region UserName
     

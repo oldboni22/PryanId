@@ -1,11 +1,12 @@
 using System.Security.Claims;
 using System.Security.Cryptography;
 using Application.Contracts.JWT;
-using Domain.Entities;
 using Duende.IdentityServer.Stores;
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.JsonWebTokens;
 using Microsoft.IdentityModel.Tokens;
+using Shared;
 
 namespace Infrastructure.Application.JWT;
 
@@ -23,7 +24,7 @@ public sealed class JwtProvider(
         return new TokenPair(accessToken, refreshToken);
     }
 
-    private static string GenerateRefreshToken() => Convert.ToBase64String(RandomNumberGenerator.GetBytes(32));
+    private static string GenerateRefreshToken() => Base64UrlTextEncoder.Encode(RandomNumberGenerator.GetBytes(32));
     
     private async Task<string> GenerateAccessToken(Guid userId, string email)
     {
@@ -42,8 +43,8 @@ public sealed class JwtProvider(
             Issuer =  options.Value.Issuer,
             Audience = options.Value.Audience,
             
-            Expires = timeProvider.GetUtcNow().AddMinutes(options.Value.AccessExpiryMinutes).UtcDateTime,
-            IssuedAt = timeProvider.GetUtcNow().UtcDateTime,
+            Expires = timeProvider.UtcNow.AddMinutes(options.Value.AccessExpiryMinutes),
+            IssuedAt = timeProvider.UtcNow,
             
             SigningCredentials = credentials
         });

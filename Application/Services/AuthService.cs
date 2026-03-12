@@ -10,6 +10,7 @@ using Domain.Entities;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
+using Shared;
 using Shared.ResultPattern;
 
 namespace Application.Services;
@@ -44,7 +45,7 @@ public sealed class AuthService(
         var refreshToken = user.RefreshTokens
             .First(t => t.Token == oldTokenLiteral);
         
-        var currentTime = timeProvider.GetUtcNow().UtcDateTime;
+        var currentTime = timeProvider.UtcNow;
         
         if (refreshToken!.RevokedAt is not null)
         {
@@ -79,7 +80,7 @@ public sealed class AuthService(
             return Result<TokenPair>.FromError(DomainErrors.UserNotFound);
         }
         
-        var currentTime = timeProvider.GetUtcNow().UtcDateTime;
+        var currentTime = timeProvider.UtcNow;
         
         user.RevokeAllRefreshTokens(currentTime);
         await dbContext.SaveChangesAsync(ct);

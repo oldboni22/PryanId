@@ -1,3 +1,3 @@
 namespace Application.Models.User;
 
-public sealed record UpdateUserDataModel(string? NewName, string? NewEmail);
+public sealed record UpdateUserDataModel(string? NewName = null, string? NewEmail = null);
