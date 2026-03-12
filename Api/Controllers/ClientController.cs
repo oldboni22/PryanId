@@ -14,11 +14,11 @@ public sealed class ClientsController(IClientService clientService) : Controller
 {
     [HttpPost]
     [Authorize]
-    public async Task<ActionResult<ClientSecretModel>> CreateAsync([FromBody] CreateClientModel model)
+    public async Task<ActionResult<ClientSecretModel>> CreateAsync([FromBody] CreateClientModel model, CancellationToken ct)
     {
         var userId = User.ExtractUserId();
         
-        var result = await clientService.CreateClientAsync(userId, model);
+        var result = await clientService.CreateClientAsync(userId, model, ct);
 
         return result.IsSuccess 
             ? result.Value 

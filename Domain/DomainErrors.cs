@@ -19,6 +19,16 @@ public static class DomainErrors
         new Error("Client.NotFound", "The client was not found.", ErrorType.NotFound);
     
     #endregion
+
+    #region User client role
+
+    public static Error SelfPromote =>
+        new Error("Role.SelfPromotion", "The user tries to promote self.", ErrorType.Validation);
+
+    public static Error CantPromote =>
+        new Error("Role.CantPromote", "This user cannot promote the targeted user.", ErrorType.Validation);
+    
+    #endregion
     
     #region UserName
     

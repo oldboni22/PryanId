@@ -17,13 +17,13 @@ namespace Application.Services;
 
 public interface IClientService
 {
-    Task<Result<ClientSecretModel>> CreateClientAsync(Guid userId, CreateClientModel model);
+    Task<Result<ClientSecretModel>> CreateClientAsync(Guid userId, CreateClientModel model, CancellationToken ct = default);
     
-    Task<Result> DeleteClientAsync(string clientId);
+    Task<Result> DeleteClientAsync(string clientId, CancellationToken ct = default);
     
-    Task<Result<ClientSecretModel>> RotateSecretAsync(string clientId);
+    Task<Result<ClientSecretModel>> RotateSecretAsync(string clientId, CancellationToken ct = default);
     
-    Task<Result> UpdateClientAsync(string clientId, UpdateClientModel model);
+    Task<Result> UpdateClientAsync(string clientId, UpdateClientModel model, CancellationToken ct = default);
 }
 
 public sealed class ClientService(
@@ -32,9 +32,12 @@ public sealed class ClientService(
     TimeProvider timeProvider,
     ILogger<ClientService> logger) : IClientService
 {
-    public async Task<Result<ClientSecretModel>> CreateClientAsync(Guid userId, CreateClientModel model)
+    #region Client management
+    
+    public async Task<Result<ClientSecretModel>> CreateClientAsync(
+        Guid userId, CreateClientModel model, CancellationToken ct = default)
     {
-        if (await clientContext.Clients.AnyAsync(c => c.ClientId == model.ClientId))
+        if (await clientContext.Clients.AnyAsync(c => c.ClientId == model.ClientId, cancellationToken: ct))
         {
             return Result<ClientSecretModel>.FromError(DomainErrors.ClientExists);
         }
@@ -57,8 +60,8 @@ public sealed class ClientService(
             clientSecret.Created = timeNow;
         }
 
-        await clientContext.AddAsync(entity);
-        await clientContext.SaveChangesAsync();
+        await clientContext.AddAsync(entity, ct);
+        await clientContext.SaveChangesAsync(ct);
 
         try
         {
@@ -67,16 +70,16 @@ public sealed class ClientService(
                 ClientId = client.ClientId,
                 UserId = userId,
                 Role = UserClientRole.Owner
-            });
+            }, ct);
 
-            await userContext.SaveChangesAsync();
+            await userContext.SaveChangesAsync(ct);
         }
         catch(Exception e)
         {
             logger.ClientCreationFailed(model.ClientId, userId, e);
             
             clientContext.Remove(entity);
-            await clientContext.SaveChangesAsync();
+            await clientContext.SaveChangesAsync(ct);
             
             return  Result<ClientSecretModel>.FromError(Error.Unknown);
         }
@@ -84,9 +87,9 @@ public sealed class ClientService(
         return Result<ClientSecretModel>.Success(new ClientSecretModel(model.ClientId, secret));
     }
     
-    public async Task<Result> DeleteClientAsync(string clientId)
+    public async Task<Result> DeleteClientAsync(string clientId, CancellationToken ct = default)
     {
-        var client = await clientContext.Clients.FirstOrDefaultAsync(x => x.ClientId == clientId);
+        var client = await clientContext.Clients.FirstOrDefaultAsync(x => x.ClientId == clientId, cancellationToken: ct);
         
         if (client is null)
         {
@@ -94,16 +97,16 @@ public sealed class ClientService(
         }
 
         clientContext.Clients.Remove(client);
-        await clientContext.SaveChangesAsync();
+        await clientContext.SaveChangesAsync(ct);
         
         return Result.Success();
     }
     
-    public async Task<Result<ClientSecretModel>> RotateSecretAsync(string clientId)
+    public async Task<Result<ClientSecretModel>> RotateSecretAsync(string clientId, CancellationToken ct = default)
     {
         var client = await clientContext.Clients
             .Include(x => x.ClientSecrets)
-            .FirstOrDefaultAsync(x => x.ClientId == clientId);
+            .FirstOrDefaultAsync(x => x.ClientId == clientId, cancellationToken: ct);
 
         if (client is null)
         {
@@ -121,16 +124,16 @@ public sealed class ClientService(
             Created = timeProvider.UtcNow
         });
 
-        await clientContext.SaveChangesAsync();
+        await clientContext.SaveChangesAsync(ct);
         return Result<ClientSecretModel>.Success(new ClientSecretModel(clientId, newSecret));
     }
     
-    public async Task<Result> UpdateClientAsync(string clientId, UpdateClientModel model)
+    public async Task<Result> UpdateClientAsync(string clientId, UpdateClientModel model, CancellationToken ct = default)
     {
         var client = await clientContext.Clients
             .Include(x => x.AllowedScopes)
             .Include(x => x.AllowedGrantTypes)
-            .FirstOrDefaultAsync(x => x.ClientId == clientId);
+            .FirstOrDefaultAsync(x => x.ClientId == clientId, cancellationToken: ct);
 
         if (client is null)
         {
@@ -166,7 +169,7 @@ public sealed class ClientService(
                 }));
         }
 
-        await clientContext.SaveChangesAsync();
+        await clientContext.SaveChangesAsync(ct);
         return Result.Success();
     }
     
@@ -179,4 +182,75 @@ public sealed class ClientService(
     };
     
     private static string GenerateSecret() => Base64UrlTextEncoder.Encode(RandomNumberGenerator.GetBytes(32));
+    
+    #endregion
+
+    #region Role management
+
+    public async Task<Result> ChangeUserRole(
+        string clientId, Guid targetId, Guid promoterId, UserClientRole targetRole, CancellationToken ct = default)
+    {
+        if (targetId == promoterId)
+        {
+            return Result.FromError(DomainErrors.SelfPromote);
+        }
+
+        var promoterRelation = await GetUserRole(clientId, promoterId, ct);
+
+        if (promoterRelation is null)
+        {
+            return Result.FromError(DomainErrors.CantPromote);
+        }
+        
+        if(promoterRelation.Role < UserClientRole.Admin
+           || (targetRole == UserClientRole.Admin && promoterRelation.Role != UserClientRole.Owner) /* Check for admin promotion*/
+           || (targetRole == UserClientRole.Owner && promoterRelation.Role != UserClientRole.Owner) /* Check for owner promotion*/
+           )
+        {
+            return Result.FromError(DomainErrors.CantPromote);
+        }
+        
+        var existingRelation = await GetUserRole(clientId, targetId, ct);
+
+        if (existingRelation is not null)
+        {
+            if (existingRelation.Role == UserClientRole.Owner ^ /* No one can change owner's role*/
+                (existingRelation.Role == UserClientRole.Admin && promoterRelation.Role != UserClientRole.Owner)
+                /* Only owner can change admin's role*/
+               )
+            {
+                return Result.FromError(DomainErrors.CantPromote);
+            }
+        }
+        
+        if (promoterRelation.Role == UserClientRole.Owner && targetRole == UserClientRole.Owner)
+        {
+            promoterRelation.Role = UserClientRole.Admin;
+        }
+        
+        if (existingRelation is null)
+        {
+            userContext.UserClients.Add(new UserClient
+            {
+                ClientId = clientId,
+                UserId = targetId,
+                Role = targetRole
+            });
+        }
+        else
+        {
+            existingRelation.Role = targetRole;    
+        }
+        
+        await userContext.SaveChangesAsync(ct);
+        return Result.Success();
+    }
+    
+    private async Task<UserClient?> GetUserRole(string clientId, Guid userId, CancellationToken ct)
+    {
+        return await userContext.UserClients
+            .FirstOrDefaultAsync(uc => uc.ClientId == clientId && uc.UserId == userId, ct);
+    }
+
+    #endregion
 }
