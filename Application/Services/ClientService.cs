@@ -86,7 +86,7 @@ public sealed class ClientService(IUserDbContext userContext, ConfigurationDbCon
         return Result<ClientSecretModel>.Success(new ClientSecretModel(clientId, newSecret));
     }
     
-    public async Task<Result> PatchClientAsync(string clientId, UpdateClientModel model)
+    public async Task<Result> UpdateClientAsync(string clientId, UpdateClientModel model)
     {
         var client = await clientContext.Clients
             .Include(x => x.AllowedScopes)
