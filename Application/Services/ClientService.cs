@@ -98,13 +98,11 @@ public sealed class ClientService(IUserDbContext userContext, ConfigurationDbCon
             return Result.FromError(DomainErrors.ClientNotFound);
         }
         
+        client.AllowOfflineAccess = model.AllowOfflineAccess;
+        
         if (model.ClientName is not null)
         {
             client.ClientName = model.ClientName;
-        }
-        if (model.AllowOfflineAccess.HasValue)
-        {
-            client.AllowOfflineAccess = model.AllowOfflineAccess.Value;
         }
         
         if (model.AllowedScopes is not null)
