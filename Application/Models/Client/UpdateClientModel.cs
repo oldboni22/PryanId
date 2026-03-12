@@ -5,4 +5,3 @@ public sealed record UpdateClientModel(
     List<string>? AllowedScopes = null,
     List<string>? AllowedGrantTypes = null,
     bool AllowOfflineAccess = false);
-    

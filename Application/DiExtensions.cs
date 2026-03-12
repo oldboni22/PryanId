@@ -12,7 +12,8 @@ public static class DiExtensions
         {
             return services
                 .AddScoped<IUserService, UserService>()
-                .AddScoped<IAuthService, AuthService>();
+                .AddScoped<IAuthService, AuthService>()
+                .AddScoped<IClientService, ClientService>();
         }
     }
 }

@@ -2,6 +2,8 @@ using System.Security.Cryptography;
 using Application.Contracts.Db;
 using Application.Models.Client;
 using Domain;
+using Domain.Entities;
+using Domain.Enums;
 using Duende.IdentityServer.EntityFramework.DbContexts;
 using Duende.IdentityServer.EntityFramework.Mappers;
 using Duende.IdentityServer.Models;
@@ -12,9 +14,23 @@ using Shared.ResultPattern;
 
 namespace Application.Services;
 
-public sealed class ClientService(IUserDbContext userContext, ConfigurationDbContext clientContext, TimeProvider timeProvider)
+public interface IClientService
 {
-    public async Task<Result<ClientSecretModel>> CreateClientAsync(CreateClientModel model)
+    Task<Result<ClientSecretModel>> CreateClientAsync(Guid userId, CreateClientModel model);
+    
+    Task<Result> DeleteClientAsync(string clientId);
+    
+    Task<Result<ClientSecretModel>> RotateSecretAsync(string clientId);
+    
+    Task<Result> UpdateClientAsync(string clientId, UpdateClientModel model);
+}
+
+public sealed class ClientService(
+    IUserDbContext userContext, 
+    ConfigurationDbContext clientContext,
+    TimeProvider timeProvider) : IClientService
+{
+    public async Task<Result<ClientSecretModel>> CreateClientAsync(Guid userId, CreateClientModel model)
     {
         if (await clientContext.Clients.AnyAsync(c => c.ClientId == model.ClientId))
         {
@@ -38,6 +54,14 @@ public sealed class ClientService(IUserDbContext userContext, ConfigurationDbCon
         {
             clientSecret.Created = timeNow;
         }
+
+        await userContext.UserClients.AddAsync(new UserClient
+        {
+            ClientId =  client.ClientId,
+            UserId = userId,
+            Role = UserClientRole.Admin
+        });
+        await userContext.SaveChangesAsync();
         
         await clientContext.AddAsync(entity);
         await clientContext.SaveChangesAsync();
