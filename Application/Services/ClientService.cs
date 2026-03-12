@@ -9,6 +9,7 @@ using Duende.IdentityServer.EntityFramework.Mappers;
 using Duende.IdentityServer.Models;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using Shared;
 using Shared.ResultPattern;
 
@@ -28,7 +29,8 @@ public interface IClientService
 public sealed class ClientService(
     IUserDbContext userContext, 
     ConfigurationDbContext clientContext,
-    TimeProvider timeProvider) : IClientService
+    TimeProvider timeProvider,
+    ILogger<ClientService> logger) : IClientService
 {
     public async Task<Result<ClientSecretModel>> CreateClientAsync(Guid userId, CreateClientModel model)
     {
@@ -55,17 +57,30 @@ public sealed class ClientService(
             clientSecret.Created = timeNow;
         }
 
-        await userContext.UserClients.AddAsync(new UserClient
-        {
-            ClientId =  client.ClientId,
-            UserId = userId,
-            Role = UserClientRole.Admin
-        });
-        await userContext.SaveChangesAsync();
-        
         await clientContext.AddAsync(entity);
         await clientContext.SaveChangesAsync();
 
+        try
+        {
+            await userContext.UserClients.AddAsync(new UserClient
+            {
+                ClientId = client.ClientId,
+                UserId = userId,
+                Role = UserClientRole.Owner
+            });
+
+            await userContext.SaveChangesAsync();
+        }
+        catch(Exception e)
+        {
+            logger.ClientCreationFailed(model.ClientId, userId, e);
+            
+            clientContext.Remove(entity);
+            await clientContext.SaveChangesAsync();
+            
+            return  Result<ClientSecretModel>.FromError(Error.Unknown);
+        }
+        
         return Result<ClientSecretModel>.Success(new ClientSecretModel(model.ClientId, secret));
     }
     
