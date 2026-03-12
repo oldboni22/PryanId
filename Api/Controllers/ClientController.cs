@@ -49,10 +49,23 @@ public sealed class ClientsController(IClientService clientService) : Controller
     
     [HttpDelete("{clientId}")]
     [Authorize(ProjectRoleRequirement.Owner)]
-    public async Task<IActionResult> Delete(string clientId)
+    public async Task<ActionResult> Delete(string clientId)
     {
         var result = await clientService.DeleteClientAsync(clientId);
 
+        return result.IsSuccess 
+            ? NoContent() 
+            : this.ParseFailedResult(result);
+    }
+
+    [HttpPost("{clientId}/change-role")]
+    [Authorize(ProjectRoleRequirement.Admin)]
+    public async Task<ActionResult> ChangeUserRoleAsync([FromRoute] string clientId, [FromBody] ChangeUserClientRoleModel model)
+    {
+        var promoterId = User.ExtractUserId();
+        
+        var result = await clientService.ChangeUserRole(clientId, promoterId, model);
+        
         return result.IsSuccess 
             ? NoContent() 
             : this.ParseFailedResult(result);

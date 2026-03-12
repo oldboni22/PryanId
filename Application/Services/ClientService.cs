@@ -24,6 +24,8 @@ public interface IClientService
     Task<Result<ClientSecretModel>> RotateSecretAsync(string clientId, CancellationToken ct = default);
     
     Task<Result> UpdateClientAsync(string clientId, UpdateClientModel model, CancellationToken ct = default);
+
+    Task<Result> ChangeUserRole(string clientId, Guid promoterId, ChangeUserClientRoleModel model, CancellationToken ct = default);
 }
 
 public sealed class ClientService(
@@ -188,9 +190,9 @@ public sealed class ClientService(
     #region Role management
 
     public async Task<Result> ChangeUserRole(
-        string clientId, Guid targetId, Guid promoterId, UserClientRole targetRole, CancellationToken ct = default)
+        string clientId, Guid promoterId, ChangeUserClientRoleModel model, CancellationToken ct = default)
     {
-        if (targetId == promoterId)
+        if (model.TargetId == promoterId)
         {
             return Result.FromError(DomainErrors.SelfPromote);
         }
@@ -202,15 +204,14 @@ public sealed class ClientService(
             return Result.FromError(DomainErrors.CantPromote);
         }
         
-        if(promoterRelation.Role < UserClientRole.Admin
-           || (targetRole == UserClientRole.Admin && promoterRelation.Role != UserClientRole.Owner) /* Check for admin promotion*/
-           || (targetRole == UserClientRole.Owner && promoterRelation.Role != UserClientRole.Owner) /* Check for owner promotion*/
+        if((model.TargetRole == UserClientRole.Admin && promoterRelation.Role != UserClientRole.Owner) /* Check for admin promotion*/
+           || (model.TargetRole == UserClientRole.Owner && promoterRelation.Role != UserClientRole.Owner) /* Check for owner promotion*/
            )
         {
             return Result.FromError(DomainErrors.CantPromote);
         }
         
-        var existingRelation = await GetUserRole(clientId, targetId, ct);
+        var existingRelation = await GetUserRole(clientId, model.TargetId, ct);
 
         if (existingRelation is not null)
         {
@@ -223,7 +224,7 @@ public sealed class ClientService(
             }
         }
         
-        if (promoterRelation.Role == UserClientRole.Owner && targetRole == UserClientRole.Owner)
+        if (promoterRelation.Role == UserClientRole.Owner && model.TargetRole == UserClientRole.Owner)
         {
             promoterRelation.Role = UserClientRole.Admin;
         }
@@ -233,13 +234,13 @@ public sealed class ClientService(
             userContext.UserClients.Add(new UserClient
             {
                 ClientId = clientId,
-                UserId = targetId,
-                Role = targetRole
+                UserId = model.TargetId,
+                Role = model.TargetRole
             });
         }
         else
         {
-            existingRelation.Role = targetRole;    
+            existingRelation.Role = model.TargetRole;    
         }
         
         await userContext.SaveChangesAsync(ct);

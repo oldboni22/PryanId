@@ -1,3 +1,4 @@
+using System.Linq;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Shared.ResultPattern;
@@ -14,9 +15,9 @@ public static class ResultExtensions
             {
                 ErrorType.Validation => controller.BadRequest(result.Errors),
                 ErrorType.NotFound => controller.NotFound(result.Errors),
-                ErrorType.Unauthorized => controller.Unauthorized(result.Errors), // Вернет 401
-                ErrorType.Forbidden => controller.Forbid(),                       // Вернет 403
-                ErrorType.Locked => controller.StatusCode(423, result.Errors),    // Вернет 423
+                ErrorType.Unauthorized => controller.Unauthorized(result.Errors), 
+                ErrorType.Forbidden => controller.Forbid(),                       
+                ErrorType.Locked => controller.StatusCode(423, result.Errors),   
                 _ => controller.StatusCode(500, result.Errors)
             };
         }
