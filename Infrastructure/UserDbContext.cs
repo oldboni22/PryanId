@@ -18,7 +18,7 @@ public sealed class UserDbContext(DbContextOptions options)
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
+        base.OnModelCreating(builder);
         builder.ApplyConfigurationsFromAssembly(typeof(UserDbContext).Assembly);
     }
-    
 }

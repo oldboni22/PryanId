@@ -189,7 +189,7 @@ internal static class HostingExtensions
         public string ExtractApiKey(string sections)
         {
             return configuration
-                       .GetSection(ApiKeyRequirement.EmailRecovery)
+                       .GetSection(ApiKeyOptions.PasswordRecover)
                        .Get<ApiKeyOptions>()?
                        .Key
                    ?? throw new InvalidOperationException();

@@ -1,0 +1,54 @@
+﻿services:
+  api:
+    image: api
+    container_name: api
+    build:
+      context: .
+      args:
+        - APPLICATION_PORT=${APPLICATION_PORT}
+      dockerfile: Api/Dockerfile
+    env_file:
+      - .env
+    ports:
+      - "${APPLICATION_PORT}:${APPLICATION_PORT}"
+
+  configurationalDb:
+    image: postgres:16-alpine
+    container_name: configurationalDb
+    environment:
+      - POSTGRES_USER=configurational
+      - POSTGRES_PASSWORD=configurational
+      - POSTGRES_DB=configurational
+    ports:
+      - "5432:5432"
+    volumes:
+      - configurational_data:/var/lib/postgresql/data
+
+  userDb:
+    image: postgres:16-alpine
+    container_name: userDb
+    environment:
+      - POSTGRES_USER=user
+      - POSTGRES_PASSWORD=user
+      - POSTGRES_DB=user
+    ports:
+      - "5433:5432"
+    volumes:
+      - user_data:/var/lib/postgresql/data
+  
+  grantDb:
+    image: postgres:16-alpine
+    container_name: grantDb
+    environment:
+      - POSTGRES_USER=grant
+      - POSTGRES_PASSWORD=grant
+      - POSTGRES_DB=grant
+    ports:
+      - "5434:5432"
+    volumes:
+      - grant_data:/var/lib/postgresql/data
+
+volumes:
+  configurational_data:
+  user_data:
+  grant_data:
