@@ -2,7 +2,7 @@ namespace Domain.Entities;
 
 public sealed class RefreshToken
 {
-    public const int TokenSize = 44;
+    public const int TokenSize = 64;
     
     public Guid Id { get; init; }
     

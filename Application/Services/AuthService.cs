@@ -21,7 +21,7 @@ public interface IAuthService
     
     public Task<Result> InvalidateAllSessions(Guid userId, CancellationToken ct = default);
 
-    public Task<Result<TokenPair>> LoginAsync(LoginUserModel loginUserModel);
+    public Task<Result<TokenPair>> LoginAsync(LoginUserModel loginUserModel,  CancellationToken ct = default);
 }
 
 public sealed class AuthService(
@@ -43,7 +43,12 @@ public sealed class AuthService(
         }
         
         var refreshToken = user.RefreshTokens
-            .First(t => t.Token == model.OldTokenLiteral);
+            .FirstOrDefault(t => t.Token == model.OldTokenLiteral);
+
+        if (refreshToken is null)
+        {
+            return Result<TokenPair>.FromError(AuthErrors.InvalidRefreshToken);
+        }
         
         var currentTime = timeProvider.UtcNow;
         
@@ -60,13 +65,14 @@ public sealed class AuthService(
             return Result<TokenPair>.FromError(AuthErrors.ExpiredRefreshToken);
         }
         
-        var tokens = await jwtProvider.Generate(user.Email!, user.Id);
+        var pair = await jwtProvider.Generate(user.Email!, user.Id);
         
         user.RevokeRefreshToken(model.OldTokenLiteral, currentTime);
-        user.AddRefreshToken(tokens.RefreshToken, RefreshTokenDuration, currentTime);
         
+        dbContext.RefreshTokens.Add(CreateRefreshToken(pair.RefreshToken, user));
         await dbContext.SaveChangesAsync(ct);
-        return Result<TokenPair>.Success(tokens);
+        
+        return Result<TokenPair>.Success(pair);
     }
 
     public async Task<Result> InvalidateAllSessions(Guid userId, CancellationToken ct = default)
@@ -88,32 +94,40 @@ public sealed class AuthService(
         return Result.Success();
     }
     
-    public async Task<Result<TokenPair>> LoginAsync(LoginUserModel loginUserModel)
+    public async Task<Result<TokenPair>> LoginAsync(LoginUserModel loginUserModel, CancellationToken ct = default)
     {
         var user = await userManager.FindByEmailAsync(loginUserModel.Email);
         
         if (user is null || !await userManager.CheckPasswordAsync(user, loginUserModel.Password))
         {
-            return Result<TokenPair>.FromError(DomainErrors.InvalidCredentials);
-        }
-        
-        var isPasswordCorrect = await userManager.CheckPasswordAsync(user, loginUserModel.Password);
-
-        if (!isPasswordCorrect)
-        {
-            await userManager.AccessFailedAsync(user);
+            if (user is not null)
+            {
+                await userManager.AccessFailedAsync(user);
+            }
+            
             return Result<TokenPair>.FromError(DomainErrors.InvalidCredentials);
         }
         
         await userManager.ResetAccessFailedCountAsync(user);
         
         var pair = await jwtProvider.Generate(user.Email!, user.Id);
-        
-        user.AddRefreshToken(pair.RefreshToken, RefreshTokenDuration, timeProvider.UtcNow);
-        await dbContext.SaveChangesAsync();
+
+        dbContext.RefreshTokens.Add(CreateRefreshToken(pair.RefreshToken, user));
+        await dbContext.SaveChangesAsync(ct);
         
         return Result<TokenPair>.Success(pair);
     }
 
-    private TimeSpan RefreshTokenDuration => TimeSpan.FromDays(options.Value.RefreshExpiryDays);
+    private RefreshToken CreateRefreshToken(string token, User user)
+    {
+        return new RefreshToken
+        {
+            Token = token,
+            CreatedAt = timeProvider.UtcNow,
+            ExpiresAt = RefreshTokenExpiry(),
+            UserId = user.Id
+        };
+    }
+    
+    private DateTime RefreshTokenExpiry() => timeProvider.UtcNow.Add(TimeSpan.FromDays(options.Value.RefreshExpiryDays));
 }

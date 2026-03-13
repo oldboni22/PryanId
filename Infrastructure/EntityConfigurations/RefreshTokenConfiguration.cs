@@ -13,7 +13,6 @@ public sealed class RefreshTokenConfiguration : IEntityTypeConfiguration<Refresh
             
         builder.Property(token => token.Token)
             .HasMaxLength(RefreshToken.TokenSize)
-            .IsFixedLength()
             .IsRequired();
             
         builder.HasIndex(token => token.Token)

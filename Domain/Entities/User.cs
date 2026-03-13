@@ -12,18 +12,6 @@ public sealed class User : IdentityUser<Guid>
     
     public IReadOnlyCollection<RefreshToken> RefreshTokens =>  _refreshTokens;
 
-    public void AddRefreshToken(string token, TimeSpan duration, DateTime currentTime)
-    {
-        _refreshTokens.Add(new RefreshToken 
-        { 
-            Id = Guid.NewGuid(),
-            Token = token, 
-            UserId = this.Id,
-            CreatedAt = currentTime,
-            ExpiresAt = currentTime.Add(duration)
-        });
-    }
-
     public void RevokeRefreshToken(string tokenLiteral, DateTime currentTime)
     {
         var token = _refreshTokens.SingleOrDefault(t => t.Token == tokenLiteral);

@@ -11,6 +11,8 @@ public sealed class UserDbContext(DbContextOptions options)
 {
     public DbSet<UserClient> UserClients { get; init; }
     
+    public DbSet<RefreshToken> RefreshTokens { get; init; }
+    
     Task IUserDbContext.SaveChangesAsync(CancellationToken cancellationToken)
     {
         return SaveChangesAsync(true, cancellationToken);

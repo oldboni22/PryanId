@@ -7,9 +7,11 @@ namespace Application.Contracts.Db;
 
 public interface IUserDbContext
 {
-    public DbSet<UserClient> UserClients { get; }
+    DbSet<UserClient> UserClients { get; }
     
-    public DbSet<User> Users { get; }
+    DbSet<User> Users { get; }
     
-    public Task SaveChangesAsync(CancellationToken cancellationToken = default);
+    Task SaveChangesAsync(CancellationToken cancellationToken = default);
+    
+    DbSet<RefreshToken> RefreshTokens { get; }
 }
