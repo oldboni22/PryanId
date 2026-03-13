@@ -1,6 +1,9 @@
-﻿using Api;
+﻿using System;
+using Api;
 using Duende.IdentityServer.EntityFramework.DbContexts;
 using Infrastructure;
+using Microsoft.AspNetCore.Builder;
+using Microsoft.Extensions.Hosting;
 using Serilog;
 using Shared.Db;
 

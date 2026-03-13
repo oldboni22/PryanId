@@ -17,7 +17,7 @@ namespace Application.Services;
 
 public interface IAuthService
 {
-    public Task<Result<TokenPair>> RefreshAsync(string oldTokenLiteral, CancellationToken ct = default);
+    public Task<Result<TokenPair>> RefreshAsync(ReloginModel model, CancellationToken ct = default);
     
     public Task<Result> InvalidateAllSessions(Guid userId, CancellationToken ct = default);
 
@@ -31,11 +31,11 @@ public sealed class AuthService(
     IJwtProvider jwtProvider,
     TimeProvider timeProvider) : IAuthService
 {
-    public async Task<Result<TokenPair>> RefreshAsync(string oldTokenLiteral, CancellationToken ct = default)
+    public async Task<Result<TokenPair>> RefreshAsync(ReloginModel model, CancellationToken ct = default)
     {
         var user = await dbContext.Users
             .Include(u => u.RefreshTokens)
-            .FirstOrDefaultAsync(u => u.RefreshTokens.Any(t => t.Token == oldTokenLiteral), ct);
+            .FirstOrDefaultAsync(u => u.RefreshTokens.Any(t => t.Token == model.OldTokenLiteral), ct);
 
         if (user is null)
         {
@@ -43,7 +43,7 @@ public sealed class AuthService(
         }
         
         var refreshToken = user.RefreshTokens
-            .First(t => t.Token == oldTokenLiteral);
+            .First(t => t.Token == model.OldTokenLiteral);
         
         var currentTime = timeProvider.UtcNow;
         
@@ -62,8 +62,8 @@ public sealed class AuthService(
         
         var tokens = await jwtProvider.Generate(user.Email!, user.Id);
         
-        user.RevokeRefreshToken(oldTokenLiteral, currentTime);
-        user.AddRefreshToken(tokens.RefreshToken, TimeSpan.FromDays(options.Value.RefreshExpiryDays), currentTime);
+        user.RevokeRefreshToken(model.OldTokenLiteral, currentTime);
+        user.AddRefreshToken(tokens.RefreshToken, RefreshTokenDuration, currentTime);
         
         await dbContext.SaveChangesAsync(ct);
         return Result<TokenPair>.Success(tokens);
@@ -109,6 +109,11 @@ public sealed class AuthService(
         
         var pair = await jwtProvider.Generate(user.Email!, user.Id);
         
+        user.AddRefreshToken(pair.RefreshToken, RefreshTokenDuration, timeProvider.UtcNow);
+        await dbContext.SaveChangesAsync();
+        
         return Result<TokenPair>.Success(pair);
     }
+
+    private TimeSpan RefreshTokenDuration => TimeSpan.FromDays(options.Value.RefreshExpiryDays);
 }

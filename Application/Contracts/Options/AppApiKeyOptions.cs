@@ -1,6 +1,6 @@
 namespace Application.Contracts.Options;
 
-public record ApiKeyOptions(string Key)
+public record AppApiKeyOptions(string Key)
 {
     private const string Section = "ApiKeys";
 

@@ -45,7 +45,7 @@ public class Result<TValue> : Result
     public static Result<TValue> FromResult<T2>(Result<T2> result, TValue? value = default) =>
         new Result<TValue>(value, result.Errors);
     
-    public static Result<TValue> FromError(Error error) => new Result<TValue>(default, [ error ]);
+    public new static Result<TValue> FromError(Error error) => new Result<TValue>(default, [ error ]);
     
     public static Result<TValue> Success(TValue value) => new Result<TValue>(value);
 }

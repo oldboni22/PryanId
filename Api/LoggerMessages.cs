@@ -1,3 +1,6 @@
+using System;
+using Microsoft.Extensions.Logging;
+
 namespace Api;
 
 internal static partial class LoggerMessages

@@ -25,10 +25,10 @@ public sealed class AuthController(IAuthService authService) : ControllerBase
             : this.ParseFailedResult(loginResult);
     }
 
-    [HttpGet("relogin")]
-    public async Task<ActionResult<TokenPair>> ReLoginAsync([FromBody] string oldTokenLiteral, CancellationToken ct)
+    [HttpPost("relogin")]
+    public async Task<ActionResult<TokenPair>> ReLoginAsync([FromBody] ReloginModel model, CancellationToken ct)
     {
-        var result = await authService.RefreshAsync(oldTokenLiteral, ct);
+        var result = await authService.RefreshAsync(model, ct);
         
         return result.IsSuccess
             ? result.Value

@@ -4,7 +4,6 @@ using Application.Contracts.JWT;
 using Application.Contracts.Options;
 using Domain.Entities;
 using Domain.Enums;
-using Duende.IdentityServer;
 using Infrastructure;
 using Infrastructure.Identity.Auth;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -14,6 +13,7 @@ using Microsoft.IdentityModel.Tokens;
 using Serilog;
 using Shared;
 using Shared.Db;
+using Scalar.AspNetCore;
 
 namespace Api;
 
@@ -81,6 +81,8 @@ internal static class HostingExtensions
             var identityServerBuilder = builder.ConfigureIdentityServer();
             
             builder.Services
+                .AddOpenApi()
+                .AddProblemDetails()
                 .AddExceptionHandler<GlobalExceptionHandler>()
                 .AddHttpContextAccessor()
                 .AddAuthBearer(builder.Configuration)
@@ -107,6 +109,9 @@ internal static class HostingExtensions
             app.UseAuthentication();
             app.UseAuthorization();
 
+            app.MapOpenApi();
+            app.MapScalarApiReference();
+            
             app.MapControllers();
             
             return app;
@@ -146,7 +151,7 @@ internal static class HostingExtensions
         
         private IServiceCollection AddAuthPolicies(IConfiguration configuration)
         {
-            var emailRecoverApiKey = configuration.ExtractApiKey(ApiKeyOptions.PasswordRecover);
+            var emailRecoverApiKey = configuration.ExtractApiKey(AppApiKeyOptions.PasswordRecover);
 
             services
                 .AddSingleton<IAuthorizationHandler, ApiKeyHandler>()
@@ -186,11 +191,11 @@ internal static class HostingExtensions
     
     extension(IConfiguration configuration)
     {
-        public string ExtractApiKey(string sections)
+        public string ExtractApiKey(string section)
         {
             return configuration
-                       .GetSection(ApiKeyOptions.PasswordRecover)
-                       .Get<ApiKeyOptions>()?
+                       .GetSection(section)
+                       .Get<AppApiKeyOptions>()?
                        .Key
                    ?? throw new InvalidOperationException();
         }

@@ -1,6 +1,6 @@
 ﻿services:
   api:
-    image: api
+    image: pryanid_api
     container_name: api
     build:
       context: .
