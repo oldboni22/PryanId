@@ -1,5 +1,6 @@
 using System.Security.Claims;
 using System.Security.Cryptography;
+using Application.Auth;
 using Application.Contracts.JWT;
 using Duende.IdentityServer.Stores;
 using Microsoft.AspNetCore.Authentication;
@@ -35,10 +36,13 @@ public sealed class JwtProvider(
             new(JwtRegisteredClaimNames.Sub, userId.ToString()),
             new(JwtRegisteredClaimNames.Email, email),
             new(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
+            new("scope", options.Value.SelfTokenScope)
         };
         
         return handler.CreateToken(new SecurityTokenDescriptor
         {
+            TokenType = options.Value.TokenType,
+            
             Subject = new ClaimsIdentity(claims),
             Issuer =  options.Value.Issuer,
             Audience = options.Value.Audience,

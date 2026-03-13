@@ -4,12 +4,15 @@ using Application.Contracts.JWT;
 using Application.Contracts.Options;
 using Domain.Entities;
 using Domain.Enums;
+using Duende.IdentityServer;
+using Duende.IdentityServer.Stores;
 using Infrastructure;
 using Infrastructure.Identity.Auth;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using Microsoft.OpenApi;
 using Serilog;
 using Shared;
 using Shared.Db;
@@ -77,21 +80,52 @@ internal static class HostingExtensions
         public WebApplication ConfigureServices()
         {
             builder.ConfigureSerilog();
-            
+
             var identityServerBuilder = builder.ConfigureIdentityServer();
-            
+
             builder.Services
-                .AddOpenApi()
+                .AddOpenApi(options =>
+                {
+                    options.AddDocumentTransformer((document, context, cancellationToken) =>
+                    {
+                        document.Components ??= new OpenApiComponents();
+                        document.Components.SecuritySchemes ??= new Dictionary<string, IOpenApiSecurityScheme>();
+
+                        var bearerScheme = new OpenApiSecurityScheme
+                        {
+                            Type = SecuritySchemeType.Http,
+                            Scheme = "bearer",
+                            BearerFormat = "JWT",
+                            Description = "JWT Token"
+                        };
+
+                        document.Components.SecuritySchemes["Bearer"] = bearerScheme;
+
+                        document.Security ??= new List<OpenApiSecurityRequirement>();
+
+                        var requirement = new OpenApiSecurityRequirement();
+
+                        var schemeReference = new OpenApiSecuritySchemeReference("Bearer", document);
+
+                        requirement.Add(schemeReference, new List<string>());
+
+                        document.Security.Add(requirement);
+
+                        return Task.CompletedTask;
+                    });
+                })
                 .AddProblemDetails()
                 .AddExceptionHandler<GlobalExceptionHandler>()
                 .AddHttpContextAccessor()
+                .AddInfrastructure(builder.Configuration)
+                .AddApplication(builder.Configuration);
+
+            identityServerBuilder.AddAspNetIdentity<User>();
+            
+            builder.Services
                 .AddAuthBearer(builder.Configuration)
                 .AddAuthPolicies(builder.Configuration)
-                .AddInfrastructure(builder.Configuration)
-                .AddApplication(builder.Configuration)
                 .AddControllers();
-            
-            identityServerBuilder.AddAspNetIdentity<User>();
             
             return builder.Build();
         }
@@ -105,8 +139,6 @@ internal static class HostingExtensions
             app.UseSerilogRequestLogging();
 
             app.UseIdentityServer();
-            
-            app.UseAuthentication();
             app.UseAuthorization();
 
             app.MapOpenApi();
@@ -126,8 +158,10 @@ internal static class HostingExtensions
             
             services.AddAuthentication(options =>
                 {
-                    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
-                    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+                    options.DefaultAuthenticateScheme = IdentityServerConstants.LocalApi.AuthenticationScheme;
+                    options.DefaultChallengeScheme = IdentityServerConstants.LocalApi.AuthenticationScheme;
+                    options.DefaultSignInScheme = IdentityServerConstants.LocalApi.AuthenticationScheme;
+                    options.DefaultScheme = IdentityServerConstants.LocalApi.AuthenticationScheme;
                 })
                 .AddJwtBearer(options =>
                 {
@@ -140,10 +174,42 @@ internal static class HostingExtensions
                         ValidIssuer = jwtOptions.Issuer,
                         ValidateAudience = true,
                         ValidAudience = jwtOptions.Audience,
-                        ValidateLifetime = true
+                        ValidateLifetime = true,
+                        ValidateIssuerSigningKey = true,
                     };
 
+                    options.Events = new JwtBearerEvents
+                    {
+                        OnTokenValidated = async context =>
+                        {
+                            var scopeClaim = context.Principal?.FindFirst("scope")?.Value;
+                            
+                            if (string.IsNullOrEmpty(scopeClaim) || !scopeClaim.Contains(jwtOptions.SelfTokenScope))
+                            {
+                                context.Fail($"Required scope is missing.");
+                            }
+
+                            context.Success();
+                            await Task.CompletedTask;
+                        }
+                    };
+                    
                     options.RequireHttpsMetadata = false;
+                });
+            
+            services.AddOptions<JwtBearerOptions>(JwtBearerDefaults.AuthenticationScheme)
+                .Configure<IHttpContextAccessor>((options, accessor) =>
+                {
+                    options.TokenValidationParameters.IssuerSigningKeyResolver = (token, securityToken, kid, validationParameters) =>
+                    {
+                        var requestServices = accessor.HttpContext?.RequestServices;
+                        if (requestServices == null) return [];
+
+                        var keyStore = requestServices.GetRequiredService<IValidationKeysStore>();
+                        var keys = keyStore.GetValidationKeysAsync().GetAwaiter().GetResult();
+                
+                        return keys.Select(k => k.Key);
+                    };
                 });
             
             return services;
