@@ -158,10 +158,10 @@ internal static class HostingExtensions
             
             services.AddAuthentication(options =>
                 {
-                    options.DefaultAuthenticateScheme = IdentityServerConstants.LocalApi.AuthenticationScheme;
-                    options.DefaultChallengeScheme = IdentityServerConstants.LocalApi.AuthenticationScheme;
-                    options.DefaultSignInScheme = IdentityServerConstants.LocalApi.AuthenticationScheme;
-                    options.DefaultScheme = IdentityServerConstants.LocalApi.AuthenticationScheme;
+                    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+                    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+                    options.DefaultSignInScheme = JwtBearerDefaults.AuthenticationScheme;
+                    options.DefaultScheme = JwtBearerDefaults.AuthenticationScheme;
                 })
                 .AddJwtBearer(options =>
                 {
