@@ -1,4 +1,8 @@
+using System;
+using System.Collections.Generic;
 using System.Security.Cryptography;
+using System.Threading;
+using System.Threading.Tasks;
 using Application.Contracts.Db;
 using Application.Models.Client;
 using Domain;
@@ -188,7 +192,7 @@ public sealed class ClientService(
     #endregion
 
     #region Role management
-
+    
     public async Task<Result> ChangeUserRole(
         string clientId, Guid promoterId, ChangeUserClientRoleModel model, CancellationToken ct = default)
     {
