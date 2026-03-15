@@ -1,11 +1,11 @@
-﻿using System;
-using System.Linq;
-using System.Threading.Tasks;
+﻿using Application.Contracts.Db;
 using Application.Models.User;
 using Domain;
 using Domain.Entities;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Shared.Db;
+using Shared.Pagination;
 using Shared.ResultPattern;
 
 namespace Application.Services;
@@ -23,9 +23,12 @@ public interface IUserService
     Task<Result> RecoverPasswordAsync(PasswordRecoveryModel model);
     
     Task<Result> DeleteAsync(Guid userId);
+
+    Task<Result<PagedList<UserClientReadModel>>> GetClientUsers(
+        string clientId, PaginationParameters? paginationParameters = null, CancellationToken ct = default);
 }
 
-public sealed class UserService(UserManager<User> userManager) : IUserService
+public sealed class UserService(UserManager<User> userManager, IUserDbContext dbContext) : IUserService
 {
     public async Task<Result> CreateAsync(CreateUserModel createUserModel)
     {
@@ -156,7 +159,35 @@ public sealed class UserService(UserManager<User> userManager) : IUserService
 
         return result;
     }
-    
+
+    public async Task<Result<PagedList<UserClientReadModel>>> GetClientUsers(
+        string clientId, PaginationParameters? paginationParameters = null, CancellationToken ct = default)
+    {
+        paginationParameters ??= new PaginationParameters();
+        
+        var relations = await dbContext.UserClients
+            .AsNoTracking()
+            .Where(uc => uc.ClientId == clientId)
+            .Include(uc => uc.User)
+            .OrderByDescending(uc => uc.Role)
+            .ThenBy(uc => uc.User.UserName)
+            .Page(paginationParameters)
+            .ToListAsync(cancellationToken: ct);
+
+        if (relations is [])
+        {
+            return Result<PagedList<UserClientReadModel>>.FromError(DomainErrors.ClientNotFound);
+        }
+
+        var count = relations.Count;
+
+        var userModelList = relations
+            .Select(uc => new UserClientReadModel(uc.User.Id, uc.User.UserName!, uc.Role.ToString()));
+        
+        return Result<PagedList<UserClientReadModel>>.Success(
+            PagedList<UserClientReadModel>.Create(userModelList, paginationParameters, count));
+    }
+
     private static void EnrichResultFromIdentityResult(Result result, IdentityResult identityResult)
     {
         foreach (var err in identityResult.Errors)

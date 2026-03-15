@@ -225,28 +225,28 @@ internal static class HostingExtensions
             
             return services.AddAuthorization(options =>
             {
-                options.AddPolicy(ProjectRoleRequirement.Viewer, policy =>
+                options.AddPolicy(ClientRoleRequirement.Viewer, policy =>
                 {
                     policy.RequireAuthenticatedUser();
-                    policy.Requirements.Add(new ProjectRoleRequirement(UserClientRole.Viewer));
+                    policy.Requirements.Add(new ClientRoleRequirement(UserClientRole.Viewer));
                 });
         
-                options.AddPolicy(ProjectRoleRequirement.Editor, policy =>
+                options.AddPolicy(ClientRoleRequirement.Editor, policy =>
                 {
                     policy.RequireAuthenticatedUser();
-                    policy.Requirements.Add(new ProjectRoleRequirement(UserClientRole.Editor));
+                    policy.Requirements.Add(new ClientRoleRequirement(UserClientRole.Editor));
                 });
         
-                options.AddPolicy(ProjectRoleRequirement.Admin, policy =>
+                options.AddPolicy(ClientRoleRequirement.Admin, policy =>
                 {
                     policy.RequireAuthenticatedUser();
-                    policy.Requirements.Add(new ProjectRoleRequirement(UserClientRole.Admin));
+                    policy.Requirements.Add(new ClientRoleRequirement(UserClientRole.Admin));
                 });
         
-                options.AddPolicy(ProjectRoleRequirement.Owner, policy =>
+                options.AddPolicy(ClientRoleRequirement.Owner, policy =>
                 {
                     policy.RequireAuthenticatedUser();
-                    policy.Requirements.Add(new ProjectRoleRequirement(UserClientRole.Owner));
+                    policy.Requirements.Add(new ClientRoleRequirement(UserClientRole.Owner));
                 });
                 
                 options.AddPolicy(ApiKeyRequirement.EmailRecovery, policy 

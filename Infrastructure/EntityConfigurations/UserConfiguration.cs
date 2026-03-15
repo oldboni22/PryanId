@@ -16,7 +16,10 @@ public sealed class UserConfiguration : IEntityTypeConfiguration<User>
         builder.Property(user => user.NormalizedUserName)
             .HasMaxLength(25);
 
-        builder.HasMany(user => user.UserClients);
+        builder.HasMany(user => user.UserClients)
+            .WithOne(user => user.User)
+            .HasForeignKey(user => user.UserId)
+            .OnDelete(DeleteBehavior.Cascade);
         
         var navigation = builder.Metadata.FindNavigation(nameof(User.RefreshTokens));
         navigation!.SetPropertyAccessMode(PropertyAccessMode.Field);

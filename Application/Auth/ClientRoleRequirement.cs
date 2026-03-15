@@ -3,7 +3,7 @@ using Microsoft.AspNetCore.Authorization;
 
 namespace Application.Auth;
 
-public sealed record ProjectRoleRequirement(UserClientRole MinimalRole) : IAuthorizationRequirement
+public sealed record ClientRoleRequirement(UserClientRole MinimalRole) : IAuthorizationRequirement
 {
     public const string Viewer = "Project.Viewer";
     

@@ -9,9 +9,9 @@ using Shared;
 namespace Infrastructure.Identity.Auth;
 
 public sealed class ProjectRoleHandler(UserDbContext dbContext, IHttpContextAccessor contextAccessor)
-    : AuthorizationHandler<ProjectRoleRequirement>
+    : AuthorizationHandler<ClientRoleRequirement>
 {
-    protected override async Task HandleRequirementAsync(AuthorizationHandlerContext context, ProjectRoleRequirement requirement)
+    protected override async Task HandleRequirementAsync(AuthorizationHandlerContext context, ClientRoleRequirement requirement)
     {
         var clientId = contextAccessor.ExtractRouteValue(RouteParameters.ClientId);
 

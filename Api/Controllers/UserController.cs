@@ -7,6 +7,7 @@ using Application.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Shared;
+using Shared.Pagination;
 using Shared.ResultPattern;
 
 
@@ -106,6 +107,25 @@ public class UserController(IUserService userService) : ControllerBase
         
         return result.IsSuccess
             ? Ok()
+            : this.ParseFailedResult(result);
+    }
+
+    [HttpDelete("/{clientId}")]
+    [Authorize(ClientRoleRequirement.Viewer)]
+    public async Task<ActionResult<PagedList<UserClientReadModel>>> GetClientUsersAsync(
+        string clientId, [FromQuery] PaginationParameters? paginationParameters)
+    {
+        var userId = User.ExtractUserId();
+        
+        if (userId == Guid.Empty)
+        {
+            return BadRequest();
+        }
+        
+        var result = await userService.GetClientUsers(clientId, paginationParameters);
+        
+        return result.IsSuccess
+            ? result.Value
             : this.ParseFailedResult(result);
     }
 }

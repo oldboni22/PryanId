@@ -28,7 +28,7 @@ public sealed class ClientsController(IClientService clientService) : Controller
     }
     
     [HttpPatch("{clientId}")]
-    [Authorize(ProjectRoleRequirement.Editor)]
+    [Authorize(ClientRoleRequirement.Editor)]
     public async Task<ActionResult> UpdateAsync(string clientId, [FromBody] UpdateClientModel model)
     {
         var result = await clientService.UpdateClientAsync(clientId, model);
@@ -39,7 +39,7 @@ public sealed class ClientsController(IClientService clientService) : Controller
     }
     
     [HttpPost("{clientId}/rotate-secret")]
-    [Authorize(ProjectRoleRequirement.Admin)]
+    [Authorize(ClientRoleRequirement.Admin)]
     public async Task<ActionResult<ClientSecretModel>> RotateSecret(string clientId)
     {
         var result = await clientService.RotateSecretAsync(clientId);
@@ -50,7 +50,7 @@ public sealed class ClientsController(IClientService clientService) : Controller
     }
     
     [HttpDelete("{clientId}")]
-    [Authorize(ProjectRoleRequirement.Owner)]
+    [Authorize(ClientRoleRequirement.Owner)]
     public async Task<ActionResult> Delete(string clientId)
     {
         var result = await clientService.DeleteClientAsync(clientId);
@@ -61,7 +61,7 @@ public sealed class ClientsController(IClientService clientService) : Controller
     }
 
     [HttpPost("{clientId}/change-role")]
-    [Authorize(ProjectRoleRequirement.Admin)]
+    [Authorize(ClientRoleRequirement.Admin)]
     public async Task<ActionResult> ChangeUserRoleAsync([FromRoute] string clientId, [FromBody] ChangeUserClientRoleModel model)
     {
         var promoterId = User.ExtractUserId();
