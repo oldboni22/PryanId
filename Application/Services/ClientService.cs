@@ -15,6 +15,8 @@ using Microsoft.AspNetCore.Authentication;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Shared;
+using Shared.Db;
+using Shared.Pagination;
 using Shared.ResultPattern;
 
 namespace Application.Services;
@@ -30,6 +32,9 @@ public interface IClientService
     Task<Result> UpdateClientAsync(string clientId, UpdateClientModel model, CancellationToken ct = default);
 
     Task<Result> ChangeUserRole(string clientId, Guid promoterId, ChangeUserClientRoleModel model, CancellationToken ct = default);
+    
+    Task<Result<PagedList<ClientUserReadModel>>> GetUserClientsAsync(
+        Guid userId, PaginationParameters? paginationParameters = null, CancellationToken ct = default); 
 }
 
 public sealed class ClientService(
@@ -179,6 +184,53 @@ public sealed class ClientService(
         return Result.Success();
     }
     
+    public async Task<Result<PagedList<ClientUserReadModel>>> GetUserClientsAsync(Guid userId, PaginationParameters? paginationParameters = null,
+        CancellationToken ct = default)
+    {
+        paginationParameters ??= new PaginationParameters();
+
+        if(!await userContext.Users.AnyAsync(u => u.Id == userId, ct))
+        {
+            return Result<PagedList<ClientUserReadModel>>.FromError(DomainErrors.UserNotFound);
+        }
+
+        var userRelationsQuery = userContext.UserClients
+            .AsNoTracking()
+            .Where(uc => uc.UserId == userId);
+            
+        var totalCount = await userRelationsQuery.CountAsync(ct);
+
+        if (totalCount == 0)
+        {
+            return Result<PagedList<ClientUserReadModel>>.FromError(DomainErrors.UserHasNoClientRoles);
+        }
+        
+        var userRelations = await  userRelationsQuery
+            .OrderByDescending(uc => uc.Role)
+            .Page(paginationParameters)
+            .ToListAsync(cancellationToken: ct);
+        
+        var clientIdsToFind = userRelations
+            .Select(uc => uc.ClientId)
+            .Distinct()
+            .ToList();
+            
+        var clientNamesDict = await clientContext.Clients
+            .Where(c => clientIdsToFind.Contains(c.ClientId))
+            .Select(c => new { c.ClientId, c.ClientName }) 
+            .ToDictionaryAsync(c => c.ClientId, c => c.ClientName, ct);
+        
+        var list = userRelations
+            .Select(uc => new ClientUserReadModel(
+                uc.ClientId, 
+                clientNamesDict.GetValueOrDefault(uc.ClientId, "Unknown"), 
+                uc.Role))
+            .ToList();
+        
+        return Result<PagedList<ClientUserReadModel>>.Success(
+            PagedList<ClientUserReadModel>.Create(list, paginationParameters, totalCount));
+    }
+    
     private static ICollection<string> GetGrantTypes(string type) => type.ToLower() switch
     {
         "m2m" => GrantTypes.ClientCredentials,
@@ -250,7 +302,7 @@ public sealed class ClientService(
         await userContext.SaveChangesAsync(ct);
         return Result.Success();
     }
-    
+
     private async Task<UserClient?> GetUserRole(string clientId, Guid userId, CancellationToken ct)
     {
         return await userContext.UserClients

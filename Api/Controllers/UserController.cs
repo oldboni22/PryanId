@@ -110,7 +110,7 @@ public class UserController(IUserService userService) : ControllerBase
             : this.ParseFailedResult(result);
     }
 
-    [HttpDelete("/{clientId}")]
+    [HttpGet("/{clientId}")]
     [Authorize(ClientRoleRequirement.Viewer)]
     public async Task<ActionResult<PagedList<UserClientReadModel>>> GetClientUsersAsync(
         string clientId, [FromQuery] PaginationParameters? paginationParameters)
@@ -122,7 +122,7 @@ public class UserController(IUserService userService) : ControllerBase
             return BadRequest();
         }
         
-        var result = await userService.GetClientUsers(clientId, paginationParameters);
+        var result = await userService.GetClientUsersAsync(clientId, paginationParameters);
         
         return result.IsSuccess
             ? result.Value

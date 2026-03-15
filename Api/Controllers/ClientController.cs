@@ -6,6 +6,7 @@ using Application.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Shared;
+using Shared.Pagination;
 using Shared.ResultPattern;
 
 namespace Api.Controllers;
@@ -19,6 +20,11 @@ public sealed class ClientsController(IClientService clientService) : Controller
     public async Task<ActionResult<ClientSecretModel>> CreateAsync([FromBody] CreateClientModel model, CancellationToken ct)
     {
         var userId = User.ExtractUserId();
+
+        if (userId == Guid.Empty)
+        {
+            return BadRequest();
+        }
         
         var result = await clientService.CreateClientAsync(userId, model, ct);
 
@@ -65,11 +71,35 @@ public sealed class ClientsController(IClientService clientService) : Controller
     public async Task<ActionResult> ChangeUserRoleAsync([FromRoute] string clientId, [FromBody] ChangeUserClientRoleModel model)
     {
         var promoterId = User.ExtractUserId();
+
+        if (promoterId == Guid.Empty)
+        {
+            return BadRequest();
+        }
         
         var result = await clientService.ChangeUserRole(clientId, promoterId, model);
         
         return result.IsSuccess 
             ? NoContent() 
+            : this.ParseFailedResult(result);
+    }
+
+    [Authorize]
+    [HttpGet("/{userId:guid}")]
+    public async Task<ActionResult<PagedList<ClientUserReadModel>>> GetUserClientsAsync(
+        [FromQuery] PaginationParameters? paginationParameters = null, CancellationToken ct = default)
+    {
+        var userId = User.ExtractUserId();
+
+        if (userId == Guid.Empty)
+        {
+            return BadRequest();
+        }
+
+        var result = await clientService.GetUserClientsAsync(userId, paginationParameters, ct);
+        
+        return result.IsSuccess
+            ? Ok(result.Value)
             : this.ParseFailedResult(result);
     }
 }

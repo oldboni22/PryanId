@@ -22,6 +22,9 @@ public static class DomainErrors
 
     #region User client role
 
+    public static Error UserHasNoClientRoles =>
+        new Error("User.Role.HasNone", "The user is not a participant of any client.", ErrorType.NotFound); 
+    
     public static Error SelfPromote =>
         new Error("Role.SelfPromotion", "The user tries to promote self.", ErrorType.Validation);
 

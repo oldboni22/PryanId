@@ -1,3 +1,4 @@
+using System.Text.Json.Serialization;
 using Application;
 using Application.Auth;
 using Application.Contracts.JWT;
@@ -125,7 +126,11 @@ internal static class HostingExtensions
             builder.Services
                 .AddAuthBearer(builder.Configuration)
                 .AddAuthPolicies(builder.Configuration)
-                .AddControllers();
+                .AddControllers()
+                .AddJsonOptions(options =>
+                {
+                    options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
+                });
             
             return builder.Build();
         }

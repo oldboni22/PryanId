@@ -24,7 +24,7 @@ public interface IUserService
     
     Task<Result> DeleteAsync(Guid userId);
 
-    Task<Result<PagedList<UserClientReadModel>>> GetClientUsers(
+    Task<Result<PagedList<UserClientReadModel>>> GetClientUsersAsync(
         string clientId, PaginationParameters? paginationParameters = null, CancellationToken ct = default);
 }
 
@@ -160,32 +160,35 @@ public sealed class UserService(UserManager<User> userManager, IUserDbContext db
         return result;
     }
 
-    public async Task<Result<PagedList<UserClientReadModel>>> GetClientUsers(
+    public async Task<Result<PagedList<UserClientReadModel>>> GetClientUsersAsync(
         string clientId, PaginationParameters? paginationParameters = null, CancellationToken ct = default)
     {
         paginationParameters ??= new PaginationParameters();
-        
-        var relations = await dbContext.UserClients
-            .AsNoTracking()
-            .Where(uc => uc.ClientId == clientId)
-            .Include(uc => uc.User)
-            .OrderByDescending(uc => uc.Role)
-            .ThenBy(uc => uc.User.UserName)
-            .Page(paginationParameters)
-            .ToListAsync(cancellationToken: ct);
 
-        if (relations is [])
+        var relationsQuery = dbContext.UserClients
+            .AsNoTracking()
+            .Where(uc => uc.ClientId == clientId);
+        
+        var totalCount = await relationsQuery.CountAsync(ct);
+
+        if (totalCount == 0)
         {
             return Result<PagedList<UserClientReadModel>>.FromError(DomainErrors.ClientNotFound);
         }
-
-        var count = relations.Count;
-
-        var userModelList = relations
-            .Select(uc => new UserClientReadModel(uc.User.Id, uc.User.UserName!, uc.Role.ToString()));
+        
+        var models = await relationsQuery
+            .OrderByDescending(uc => uc.Role)
+            .ThenBy(uc => uc.User.UserName)
+            .Select(uc => new UserClientReadModel(
+                uc.User.Id, 
+                uc.User.UserName!, 
+                uc.Role)
+            )
+            .Page(paginationParameters)
+            .ToListAsync(cancellationToken: ct);
         
         return Result<PagedList<UserClientReadModel>>.Success(
-            PagedList<UserClientReadModel>.Create(userModelList, paginationParameters, count));
+            PagedList<UserClientReadModel>.Create(models, paginationParameters, totalCount));
     }
 
     private static void EnrichResultFromIdentityResult(Result result, IdentityResult identityResult)
