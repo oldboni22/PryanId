@@ -163,8 +163,6 @@ public sealed class UserService(UserManager<User> userManager, IUserDbContext db
     public async Task<Result<PagedList<UserClientReadModel>>> GetClientUsersAsync(
         string clientId, PaginationParameters? paginationParameters = null, CancellationToken ct = default)
     {
-        paginationParameters ??= new PaginationParameters();
-
         var relationsQuery = dbContext.UserClients
             .AsNoTracking()
             .Where(uc => uc.ClientId == clientId);

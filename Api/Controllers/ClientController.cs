@@ -1,5 +1,6 @@
 using System.Threading;
 using System.Threading.Tasks;
+using Api.Filters;
 using Application.Auth;
 using Application.Models.Client;
 using Application.Services;
@@ -85,6 +86,7 @@ public sealed class ClientsController(IClientService clientService) : Controller
     }
 
     [Authorize]
+    [PaginationParametersFilter]
     [HttpGet("/{userId:guid}")]
     public async Task<ActionResult<PagedList<ClientUserReadModel>>> GetUserClientsAsync(
         [FromQuery] PaginationParameters? paginationParameters = null, CancellationToken ct = default)

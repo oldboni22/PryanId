@@ -184,11 +184,9 @@ public sealed class ClientService(
         return Result.Success();
     }
     
-    public async Task<Result<PagedList<ClientUserReadModel>>> GetUserClientsAsync(Guid userId, PaginationParameters? paginationParameters = null,
-        CancellationToken ct = default)
+    public async Task<Result<PagedList<ClientUserReadModel>>> GetUserClientsAsync(
+        Guid userId, PaginationParameters? paginationParameters = null, CancellationToken ct = default)
     {
-        paginationParameters ??= new PaginationParameters();
-
         if(!await userContext.Users.AnyAsync(u => u.Id == userId, ct))
         {
             return Result<PagedList<ClientUserReadModel>>.FromError(DomainErrors.UserNotFound);
