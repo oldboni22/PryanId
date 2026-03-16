@@ -15,4 +15,6 @@ public sealed record JwtOptions
     public int AccessExpiryMinutes { get; init; }
     
     public int RefreshExpiryDays { get; init; }
+    
+    public int MaxExpiredTokensStored { get; init; }
 }

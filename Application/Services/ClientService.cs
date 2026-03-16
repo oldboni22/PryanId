@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Security.Cryptography;
 using System.Threading;
 using System.Threading.Tasks;
+using Application.Contracts.BackgroundJob;
 using Application.Contracts.Db;
 using Application.Models.Client;
 using Domain;
@@ -41,6 +42,7 @@ public sealed class ClientService(
     IUserDbContext userContext, 
     ConfigurationDbContext clientContext,
     TimeProvider timeProvider,
+    IBackgroundJobScheduler backgroundJobScheduler,
     ILogger<ClientService> logger) : IClientService
 {
     #region Client management
@@ -110,6 +112,7 @@ public sealed class ClientService(
         clientContext.Clients.Remove(client);
         await clientContext.SaveChangesAsync(ct);
         
+        backgroundJobScheduler.EnqueueClientRelationsWipe(clientId);
         return Result.Success();
     }
     

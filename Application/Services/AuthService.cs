@@ -2,6 +2,7 @@ using System;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Application.Contracts.BackgroundJob;
 using Application.Contracts.Db;
 using Application.Contracts.JWT;
 using Application.Models.User;
@@ -29,6 +30,7 @@ public sealed class AuthService(
     IUserDbContext dbContext,
     UserManager<User> userManager,
     IJwtProvider jwtProvider,
+    IBackgroundJobScheduler backgroundJobScheduler,
     TimeProvider timeProvider) : IAuthService
 {
     public async Task<Result<TokenPair>> RefreshAsync(ReloginModel model, CancellationToken ct = default)
@@ -72,6 +74,7 @@ public sealed class AuthService(
         dbContext.RefreshTokens.Add(CreateRefreshToken(pair.RefreshToken, user));
         await dbContext.SaveChangesAsync(ct);
         
+        await EnqueueWipeIfNeeded(user, ct);
         return Result<TokenPair>.Success(pair);
     }
 
@@ -115,6 +118,7 @@ public sealed class AuthService(
         dbContext.RefreshTokens.Add(CreateRefreshToken(pair.RefreshToken, user));
         await dbContext.SaveChangesAsync(ct);
         
+        await EnqueueWipeIfNeeded(user, ct);
         return Result<TokenPair>.Success(pair);
     }
 
@@ -127,6 +131,19 @@ public sealed class AuthService(
             ExpiresAt = RefreshTokenExpiry(),
             UserId = user.Id
         };
+    }
+
+    private async Task EnqueueWipeIfNeeded(User user, CancellationToken ct = default)
+    {
+        var revokedCount = await dbContext.Entry(user)
+            .Collection(usr => usr.RefreshTokens)
+            .Query()
+            .CountAsync(token => token.RevokedAt != null, cancellationToken: ct);
+
+        if (revokedCount >= options.Value.MaxExpiredTokensStored)
+        {
+            backgroundJobScheduler.EnqueueExpiredRefreshTokenWipe(user.Id);
+        }
     }
     
     private DateTime RefreshTokenExpiry() => timeProvider.UtcNow.Add(TimeSpan.FromDays(options.Value.RefreshExpiryDays));
