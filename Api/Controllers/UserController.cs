@@ -111,7 +111,7 @@ public class UserController(IUserService userService) : ControllerBase
             : this.ParseFailedResult(result);
     }
 
-    [HttpGet("/{clientId}")]
+    [HttpGet("{clientId}/users")]
     [PaginationParametersFilter]
     [Authorize(ClientRoleRequirement.Viewer)]
     public async Task<ActionResult<PagedList<UserClientReadModel>>> GetClientUsersAsync(

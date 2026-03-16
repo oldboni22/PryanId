@@ -36,9 +36,9 @@ public sealed class ClientsController(IClientService clientService) : Controller
     
     [HttpPatch("{clientId}")]
     [Authorize(ClientRoleRequirement.Editor)]
-    public async Task<ActionResult> UpdateAsync(string clientId, [FromBody] UpdateClientModel model)
+    public async Task<ActionResult> UpdateAsync(string clientId, [FromBody] UpdateClientModel model,  CancellationToken ct)
     {
-        var result = await clientService.UpdateClientAsync(clientId, model);
+        var result = await clientService.UpdateClientAsync(clientId, model, ct);
 
         return result.IsSuccess 
             ? NoContent() 
@@ -47,9 +47,9 @@ public sealed class ClientsController(IClientService clientService) : Controller
     
     [HttpPost("{clientId}/rotate-secret")]
     [Authorize(ClientRoleRequirement.Admin)]
-    public async Task<ActionResult<ClientSecretModel>> RotateSecret(string clientId)
+    public async Task<ActionResult<ClientSecretModel>> RotateSecret(string clientId, CancellationToken ct)
     {
-        var result = await clientService.RotateSecretAsync(clientId);
+        var result = await clientService.RotateSecretAsync(clientId, ct);
 
         return result.IsSuccess 
             ? Ok(result.Value) 
@@ -69,7 +69,8 @@ public sealed class ClientsController(IClientService clientService) : Controller
 
     [HttpPost("{clientId}/change-role")]
     [Authorize(ClientRoleRequirement.Admin)]
-    public async Task<ActionResult> ChangeUserRoleAsync([FromRoute] string clientId, [FromBody] ChangeUserClientRoleModel model)
+    public async Task<ActionResult> ChangeUserRoleAsync(
+        [FromRoute] string clientId, [FromBody] ChangeUserClientRoleModel model,  CancellationToken ct)
     {
         var promoterId = User.ExtractUserId();
 
@@ -78,7 +79,7 @@ public sealed class ClientsController(IClientService clientService) : Controller
             return BadRequest();
         }
         
-        var result = await clientService.ChangeUserRole(clientId, promoterId, model);
+        var result = await clientService.ChangeUserRole(clientId, promoterId, model, ct);
         
         return result.IsSuccess 
             ? NoContent() 
@@ -87,7 +88,7 @@ public sealed class ClientsController(IClientService clientService) : Controller
 
     [Authorize]
     [PaginationParametersFilter]
-    [HttpGet("/{userId:guid}")]
+    [HttpGet("{userId:guid}/clients")]
     public async Task<ActionResult<PagedList<ClientUserReadModel>>> GetUserClientsAsync(
         [FromQuery] PaginationParameters paginationParameters, CancellationToken ct = default)
     {
