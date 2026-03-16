@@ -17,11 +17,11 @@ namespace Application.Services;
 
 public interface IAuthService
 {
-    public Task<Result<TokenPair>> RefreshAsync(ReloginModel model, CancellationToken ct = default);
+    Task<Result<TokenPair>> RefreshAsync(ReloginModel model, CancellationToken ct = default);
     
-    public Task<Result> InvalidateAllSessions(Guid userId, CancellationToken ct = default);
+    Task<Result> InvalidateAllSessions(Guid userId, CancellationToken ct = default);
 
-    public Task<Result<TokenPair>> LoginAsync(LoginUserModel loginUserModel,  CancellationToken ct = default);
+    Task<Result<TokenPair>> LoginAsync(LoginUserModel loginUserModel,  CancellationToken ct = default);
 }
 
 public sealed class AuthService(
