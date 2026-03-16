@@ -4,6 +4,7 @@ using Domain;
 using Domain.Entities;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Shared;
 using Shared.Db;
 using Shared.Pagination;
 using Shared.ResultPattern;
@@ -28,7 +29,7 @@ public interface IUserService
         string clientId, PaginationParameters paginationParameters, CancellationToken ct = default);
 }
 
-public sealed class UserService(UserManager<User> userManager, IUserDbContext dbContext) : IUserService
+public sealed class UserService(UserManager<User> userManager, IUserDbContext dbContext, TimeProvider timeProvider) : IUserService
 {
     public async Task<Result> CreateAsync(CreateUserModel createUserModel)
     {
@@ -131,7 +132,16 @@ public sealed class UserService(UserManager<User> userManager, IUserDbContext db
 
         var result = Result.Success();
         
-        if (!identityResult.Succeeded)
+        if (identityResult.Succeeded)
+        {
+            await dbContext.Entry(user)
+                .Collection(u => u.RefreshTokens)
+                .LoadAsync();
+            
+            user.RevokeAllRefreshTokens(timeProvider.UtcNow);
+            await dbContext.SaveChangesAsync(CancellationToken.None);
+        }
+        else
         {
             EnrichResultFromIdentityResult(result, identityResult);
         }
