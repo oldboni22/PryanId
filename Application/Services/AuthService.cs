@@ -140,7 +140,7 @@ public sealed class AuthService(
         var revokedCount = await dbContext.Entry(user)
             .Collection(usr => usr.RefreshTokens)
             .Query()
-            .CountAsync(token => !token.IsActive(currentTime), cancellationToken: ct);
+            .CountAsync(token => token.RevokedAt != null || token.ExpiresAt <= currentTime, cancellationToken: ct);
 
         if (revokedCount >= options.Value.MaxExpiredTokensStored)
         {
