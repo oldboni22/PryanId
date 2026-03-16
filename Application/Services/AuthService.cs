@@ -135,10 +135,12 @@ public sealed class AuthService(
 
     private async Task EnqueueWipeIfNeeded(User user, CancellationToken ct = default)
     {
+        var currentTime = timeProvider.UtcNow;
+        
         var revokedCount = await dbContext.Entry(user)
             .Collection(usr => usr.RefreshTokens)
             .Query()
-            .CountAsync(token => token.RevokedAt != null, cancellationToken: ct);
+            .CountAsync(token => !token.IsActive(currentTime), cancellationToken: ct);
 
         if (revokedCount >= options.Value.MaxExpiredTokensStored)
         {
