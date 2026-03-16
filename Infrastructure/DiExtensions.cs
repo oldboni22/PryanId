@@ -1,5 +1,6 @@
 using Application.Contracts.Db;
 using Application.Contracts.JWT;
+using Infrastructure.Application.Db;
 using Infrastructure.Application.JWT;
 using Infrastructure.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -26,6 +27,7 @@ public static class DiExtensions
                 .AddSingleton(new JsonWebTokenHandler())
                 .AddSingleton(TimeProvider.System)
                 .AddUserContext(configuration)
+                .AddScoped<IBulkDeleteClientRelationsHelper, PostgreBulkDeleteClientRelationsHelper>()
                 .ConfigureIdentity()
                 .AddJwtProvider(configuration);
 

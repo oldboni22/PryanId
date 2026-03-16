@@ -3,6 +3,7 @@ using System.Threading.Tasks;
 using Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
+using Microsoft.EntityFrameworkCore.Infrastructure;
 
 namespace Application.Contracts.Db;
 
