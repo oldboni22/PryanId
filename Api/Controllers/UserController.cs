@@ -115,7 +115,7 @@ public class UserController(IUserService userService) : ControllerBase
     [PaginationParametersFilter]
     [Authorize(ClientRoleRequirement.Viewer)]
     public async Task<ActionResult<PagedList<UserClientReadModel>>> GetClientUsersAsync(
-        string clientId, [FromQuery] PaginationParameters? paginationParameters)
+        string clientId, [FromQuery] PaginationParameters paginationParameters, CancellationToken ct)
     {
         var userId = User.ExtractUserId();
         
@@ -124,7 +124,7 @@ public class UserController(IUserService userService) : ControllerBase
             return BadRequest();
         }
         
-        var result = await userService.GetClientUsersAsync(clientId, paginationParameters);
+        var result = await userService.GetClientUsersAsync(clientId, paginationParameters, ct);
         
         return result.IsSuccess
             ? result.Value

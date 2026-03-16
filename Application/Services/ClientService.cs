@@ -34,7 +34,7 @@ public interface IClientService
     Task<Result> ChangeUserRole(string clientId, Guid promoterId, ChangeUserClientRoleModel model, CancellationToken ct = default);
     
     Task<Result<PagedList<ClientUserReadModel>>> GetUserClientsAsync(
-        Guid userId, PaginationParameters? paginationParameters = null, CancellationToken ct = default); 
+        Guid userId, PaginationParameters paginationParameters, CancellationToken ct = default); 
 }
 
 public sealed class ClientService(
@@ -185,7 +185,7 @@ public sealed class ClientService(
     }
     
     public async Task<Result<PagedList<ClientUserReadModel>>> GetUserClientsAsync(
-        Guid userId, PaginationParameters? paginationParameters = null, CancellationToken ct = default)
+        Guid userId, PaginationParameters paginationParameters, CancellationToken ct = default)
     {
         if(!await userContext.Users.AnyAsync(u => u.Id == userId, ct))
         {
@@ -258,9 +258,7 @@ public sealed class ClientService(
             return Result.FromError(DomainErrors.CantPromote);
         }
         
-        if((model.TargetRole == UserClientRole.Admin && promoterRelation.Role != UserClientRole.Owner) /* Check for admin promotion*/
-           || (model.TargetRole == UserClientRole.Owner && promoterRelation.Role != UserClientRole.Owner) /* Check for owner promotion*/
-           )
+        if(model.TargetRole >= UserClientRole.Admin && promoterRelation.Role != UserClientRole.Owner) //Only owner can promote to admin+
         {
             return Result.FromError(DomainErrors.CantPromote);
         }

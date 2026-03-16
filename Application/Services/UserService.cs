@@ -25,7 +25,7 @@ public interface IUserService
     Task<Result> DeleteAsync(Guid userId);
 
     Task<Result<PagedList<UserClientReadModel>>> GetClientUsersAsync(
-        string clientId, PaginationParameters? paginationParameters = null, CancellationToken ct = default);
+        string clientId, PaginationParameters paginationParameters, CancellationToken ct = default);
 }
 
 public sealed class UserService(UserManager<User> userManager, IUserDbContext dbContext) : IUserService
@@ -161,7 +161,7 @@ public sealed class UserService(UserManager<User> userManager, IUserDbContext db
     }
 
     public async Task<Result<PagedList<UserClientReadModel>>> GetClientUsersAsync(
-        string clientId, PaginationParameters? paginationParameters = null, CancellationToken ct = default)
+        string clientId, PaginationParameters paginationParameters, CancellationToken ct = default)
     {
         var relationsQuery = dbContext.UserClients
             .AsNoTracking()

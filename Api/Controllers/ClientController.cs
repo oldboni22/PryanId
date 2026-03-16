@@ -89,7 +89,7 @@ public sealed class ClientsController(IClientService clientService) : Controller
     [PaginationParametersFilter]
     [HttpGet("/{userId:guid}")]
     public async Task<ActionResult<PagedList<ClientUserReadModel>>> GetUserClientsAsync(
-        [FromQuery] PaginationParameters? paginationParameters = null, CancellationToken ct = default)
+        [FromQuery] PaginationParameters paginationParameters, CancellationToken ct = default)
     {
         var userId = User.ExtractUserId();
 
