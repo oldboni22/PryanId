@@ -1,3 +1,4 @@
+using Application.BackgroundJobs;
 using Application.Services;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -13,7 +14,9 @@ public static class DiExtensions
             return services
                 .AddScoped<IUserService, UserService>()
                 .AddScoped<IAuthService, AuthService>()
-                .AddScoped<IClientService, ClientService>();
+                .AddScoped<IClientService, ClientService>()
+                .AddTransient<ClientRelationsWipeJob>()
+                .AddTransient<ExpiredRefreshTokenWipeJob>();
         }
     }
 }

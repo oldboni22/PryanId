@@ -1,5 +1,9 @@
+using Application.Contracts.BackgroundJob;
 using Application.Contracts.Db;
 using Application.Contracts.JWT;
+using Hangfire;
+using Hangfire.PostgreSql;
+using Infrastructure.Application.BackgroundJob;
 using Infrastructure.Application.Db;
 using Infrastructure.Application.JWT;
 using Infrastructure.Identity;
@@ -15,6 +19,8 @@ namespace Infrastructure;
 file static class SectionNames
 {
     public const string IdentityStorage = $"{DbConnectionOptions.SectionName}:Identity";
+    
+    public const string HangfireStorage = $"{DbConnectionOptions.SectionName}:Hangfire";
 }
 
 public static class DiExtensions
@@ -27,9 +33,11 @@ public static class DiExtensions
                 .AddSingleton(new JsonWebTokenHandler())
                 .AddSingleton(TimeProvider.System)
                 .AddUserContext(configuration)
-                .AddScoped<IBulkDeleteClientRelationsHelper, PostgreBulkDeleteClientRelationsHelper>()
+                .AddTransient<IBulkDeleteClientRelationsHelper, PostgreBulkDeleteClientRelationsHelper>()
+                .AddSingleton<IBackgroundJobScheduler, HangfireBackgroundJobScheduler>()
                 .ConfigureIdentity()
-                .AddJwtProvider(configuration);
+                .AddJwtProvider(configuration)
+                .AddHangfireBgJobs(configuration);
 
             return services;
         }
@@ -50,6 +58,17 @@ public static class DiExtensions
             
             return services
                 .AddScoped<IJwtProvider, JwtProvider>();
+        }
+
+        private IServiceCollection AddHangfireBgJobs(IConfiguration configuration)
+        {
+            var connectionString = configuration.ExtractConnectionString(SectionNames.HangfireStorage);
+
+            return services
+                .AddHangfire(config =>
+                    config.UsePostgreSqlStorage(options => options.UseNpgsqlConnection(connectionString)
+                    ))
+                .AddHangfireServer();
         }
     }
 }
