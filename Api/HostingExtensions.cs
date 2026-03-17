@@ -192,9 +192,13 @@ internal static class HostingExtensions
                             if (string.IsNullOrEmpty(scopeClaim) || !scopeClaim.Contains(jwtOptions.SelfTokenScope))
                             {
                                 context.Fail($"Required scope is missing.");
+                                
                             }
-
-                            context.Success();
+                            else
+                            {
+                                context.Success();
+                            }
+                            
                             await Task.CompletedTask;
                         }
                     };

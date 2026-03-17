@@ -88,7 +88,7 @@ public sealed class ClientsController(IClientService clientService) : Controller
 
     [Authorize]
     [PaginationParametersFilter]
-    [HttpGet("{userId:guid}/clients")]
+    [HttpGet("/clients")]
     public async Task<ActionResult<PagedList<ClientUserReadModel>>> GetUserClientsAsync(
         [FromQuery] PaginationParameters paginationParameters, CancellationToken ct = default)
     {

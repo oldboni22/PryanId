@@ -11,6 +11,11 @@
       - .env
     ports:
       - "${APPLICATION_PORT}:${APPLICATION_PORT}"
+    depends_on:
+      - configurationalDb
+      - userDb
+      - grantDb
+      - jobsDb
 
   configurationalDb:
     image: postgres:16-alpine
@@ -47,8 +52,22 @@
       - "5434:5432"
     volumes:
       - grant_data:/var/lib/postgresql/data
+        
+  jobsDb:
+    image: postgres:16-alpine
+    container_name: jobsDb
+    environment:
+      - POSTGRES_USER=jobs
+      - POSTGRES_PASSWORD=jobs
+      - POSTGRES_DB=jobs
+    ports:
+      - "5435:5432"
+    volumes:
+      - jobs_data:/var/lib/postgresql/data
 
 volumes:
   configurational_data:
   user_data:
   grant_data:
+  jobs_data:
+    

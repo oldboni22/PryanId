@@ -33,8 +33,6 @@ public static class DiExtensions
                 .AddSingleton(new JsonWebTokenHandler())
                 .AddSingleton(TimeProvider.System)
                 .AddUserContext(configuration)
-                .AddTransient<IBulkDeleteClientRelationsHelper, PostgreBulkDeleteClientRelationsHelper>()
-                .AddSingleton<IBackgroundJobScheduler, HangfireBackgroundJobScheduler>()
                 .ConfigureIdentity()
                 .AddJwtProvider(configuration)
                 .AddHangfireBgJobs(configuration);
@@ -68,7 +66,9 @@ public static class DiExtensions
                 .AddHangfire(config =>
                     config.UsePostgreSqlStorage(options => options.UseNpgsqlConnection(connectionString)
                     ))
-                .AddHangfireServer();
+                .AddHangfireServer()
+                .AddTransient<IBulkDeleteClientRelationsHelper, PostgreBulkDeleteClientRelationsHelper>()
+                .AddSingleton<IBackgroundJobScheduler, HangfireBackgroundJobScheduler>();
         }
     }
 }
