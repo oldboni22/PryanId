@@ -17,9 +17,11 @@ public interface IUserService
     
     Task<Result<ReadUserModel>> GetAsync(Guid id, Guid callerId);
     
-    Task<Result<ReadUserModel>> UpdateDataAsync(Guid userId, UpdateUserDataModel updateUserModel);
+    Task<Result<ReadUserModel>> UpdateDataAsync(Guid userId, UpdateUserDataModel model);
     
-    Task<Result> UpdatePasswordAsync(Guid userId, UpdatePasswordModel updateModel);
+    Task<Result> UpdatePasswordAsync(Guid userId, UpdatePasswordModel model);
+    
+    Task<Result<string>> RequestPasswordRecoveryAsync(RequestPasswordRecoveryModel model);
     
     Task<Result> RecoverPasswordAsync(PasswordRecoveryModel model);
     
@@ -70,7 +72,7 @@ public sealed class UserService(UserManager<User> userManager, IUserDbContext db
             : Result<ReadUserModel>.Success(model);
     }
     
-    public async Task<Result<ReadUserModel>> UpdateDataAsync(Guid userId, UpdateUserDataModel updateUserModel)
+    public async Task<Result<ReadUserModel>> UpdateDataAsync(Guid userId, UpdateUserDataModel model)
     {
         var user = await userManager.FindByIdAsync(userId.ToString());
 
@@ -79,13 +81,13 @@ public sealed class UserService(UserManager<User> userManager, IUserDbContext db
             return Result<ReadUserModel>.FromError(DomainErrors.UserNotFound);
         }
 
-        if(updateUserModel.NewEmail is not  null)
+        if(model.NewEmail is not  null)
         {
-            user.Email = updateUserModel.NewEmail ?? user.Email;
+            user.Email = model.NewEmail ?? user.Email;
             user.EmailConfirmed = false;
         }
         
-        user.UserName = updateUserModel.NewName  ?? user.UserName;
+        user.UserName = model.NewName  ?? user.UserName;
         
         var updateResult = await userManager.UpdateAsync(user);
 
@@ -99,7 +101,7 @@ public sealed class UserService(UserManager<User> userManager, IUserDbContext db
         return Result<ReadUserModel>.FromResult(result);
     }
 
-    public async Task<Result> UpdatePasswordAsync(Guid userId, UpdatePasswordModel updateModel)
+    public async Task<Result> UpdatePasswordAsync(Guid userId, UpdatePasswordModel model)
     {
         var user = await userManager.FindByIdAsync(userId.ToString());
         if (user is null)
@@ -107,7 +109,7 @@ public sealed class UserService(UserManager<User> userManager, IUserDbContext db
             return Result.FromError(DomainErrors.UserNotFound);
         }
         
-        var identityResult = await userManager.ChangePasswordAsync(user, updateModel.OldPassword, updateModel.NewPassword);
+        var identityResult = await userManager.ChangePasswordAsync(user, model.OldPassword, model.NewPassword);
 
         var result = Result.Success();
         
@@ -118,7 +120,22 @@ public sealed class UserService(UserManager<User> userManager, IUserDbContext db
         
         return result;
     }
-    
+
+    public async Task<Result<string>> RequestPasswordRecoveryAsync(RequestPasswordRecoveryModel model)
+    {
+        var user = await userManager.FindByEmailAsync(model.Email);
+        if (user is null)
+        {
+            return Result<string>.FromError(DomainErrors.UserNotFound);
+        }
+        
+        var token =  await userManager.GeneratePasswordResetTokenAsync(user);
+        
+        //TODO Add email sent later
+        
+        return Result<string>.Success(token);
+    }
+
     public async Task<Result> RecoverPasswordAsync(PasswordRecoveryModel model)
     {
         var user = await userManager.FindByEmailAsync(model.Email);
@@ -127,8 +144,7 @@ public sealed class UserService(UserManager<User> userManager, IUserDbContext db
             return Result.FromError(DomainErrors.UserNotFound);
         }
         
-        await userManager.RemovePasswordAsync(user);
-        var identityResult = await userManager.AddPasswordAsync(user, model.NewPassword);
+        var identityResult = await userManager.ResetPasswordAsync(user, model.Token, model.NewPassword);
 
         var result = Result.Success();
         

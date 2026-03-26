@@ -83,7 +83,6 @@ public class UserController(IUserService userService) : ControllerBase
     }
     
     [HttpPost("recover-password")]
-    [Authorize(ApiKeyRequirement.EmailRecovery)]
     public async Task<ActionResult> RecoverPasswordAsync([FromBody] PasswordRecoveryModel model, CancellationToken ct)
     {
         var result = await userService.RecoverPasswordAsync(model);

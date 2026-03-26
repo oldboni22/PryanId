@@ -2,10 +2,8 @@ using System.Text.Json.Serialization;
 using Application;
 using Application.Auth;
 using Application.Contracts.JWT;
-using Application.Contracts.Options;
 using Domain.Entities;
 using Domain.Enums;
-using Duende.IdentityServer;
 using Duende.IdentityServer.Stores;
 using Infrastructure;
 using Infrastructure.Identity.Auth;
@@ -125,7 +123,7 @@ internal static class HostingExtensions
             
             builder.Services
                 .AddAuthBearer(builder.Configuration)
-                .AddAuthPolicies(builder.Configuration)
+                .AddAuthPolicies()
                 .AddControllers()
                 .AddJsonOptions(options =>
                 {
@@ -219,12 +217,9 @@ internal static class HostingExtensions
             return services;
         }
         
-        private IServiceCollection AddAuthPolicies(IConfiguration configuration)
+        private IServiceCollection AddAuthPolicies()
         {
-            var emailRecoverApiKey = configuration.ExtractApiKey(AppApiKeyOptions.PasswordRecover);
-
             services
-                .AddSingleton<IAuthorizationHandler, ApiKeyHandler>()
                 .AddScoped<IAuthorizationHandler, ProjectRoleHandler>();
             
             return services.AddAuthorization(options =>
@@ -252,22 +247,7 @@ internal static class HostingExtensions
                     policy.RequireAuthenticatedUser();
                     policy.Requirements.Add(new ClientRoleRequirement(UserClientRole.Owner));
                 });
-                
-                options.AddPolicy(ApiKeyRequirement.EmailRecovery, policy 
-                    => policy.Requirements.Add(new ApiKeyRequirement(emailRecoverApiKey)));
             });
-        }
-    }
-    
-    extension(IConfiguration configuration)
-    {
-        public string ExtractApiKey(string section)
-        {
-            return configuration
-                       .GetSection(section)
-                       .Get<AppApiKeyOptions>()?
-                       .Key
-                   ?? throw new InvalidOperationException();
         }
     }
 }

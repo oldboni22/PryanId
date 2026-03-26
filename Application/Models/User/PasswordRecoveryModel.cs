@@ -1,3 +1,3 @@
 namespace Application.Models.User;
 
-public sealed record PasswordRecoveryModel(string Email, string NewPassword);
+public sealed record PasswordRecoveryModel(string Token, string Email, string NewPassword);
