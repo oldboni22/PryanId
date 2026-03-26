@@ -1,7 +1,3 @@
-using System;
-using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
 using Application.Contracts.BackgroundJob;
 using Application.Contracts.Db;
 using Application.Contracts.JWT;
@@ -13,6 +9,8 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using Shared;
 using Shared.ResultPattern;
+using Duende.IdentityServer.Models;
+using RefreshToken = Domain.Entities.RefreshToken;
 
 namespace Application.Services;
 
@@ -20,9 +18,9 @@ public interface IAuthService
 {
     Task<Result<TokenPair>> RefreshAsync(ReloginModel model, CancellationToken ct = default);
     
-    Task<Result> InvalidateAllSessions(Guid userId, CancellationToken ct = default);
-
     Task<Result<TokenPair>> LoginAsync(LoginUserModel loginUserModel,  CancellationToken ct = default);
+    
+    Task<Result> InvalidateAllSessions(Guid userId, CancellationToken ct = default);
 }
 
 public sealed class AuthService(
@@ -35,9 +33,11 @@ public sealed class AuthService(
 {
     public async Task<Result<TokenPair>> RefreshAsync(ReloginModel model, CancellationToken ct = default)
     {
+        var hashedOldToken = model.OldTokenLiteral.Sha256();
+        
         var user = await dbContext.Users
             .Include(u => u.RefreshTokens)
-            .FirstOrDefaultAsync(u => u.RefreshTokens.Any(t => t.Token == model.OldTokenLiteral), ct);
+            .FirstOrDefaultAsync(u => u.RefreshTokens.Any(t => t.Token == hashedOldToken), ct);
 
         if (user is null)
         {
@@ -45,7 +45,7 @@ public sealed class AuthService(
         }
         
         var refreshToken = user.RefreshTokens
-            .FirstOrDefault(t => t.Token == model.OldTokenLiteral);
+            .FirstOrDefault(t => t.Token == hashedOldToken);
 
         if (refreshToken is null)
         {
@@ -54,7 +54,7 @@ public sealed class AuthService(
         
         var currentTime = timeProvider.UtcNow;
         
-        if (refreshToken!.RevokedAt is not null)
+        if (refreshToken.RevokedAt is not null)
         {
             user.RevokeAllRefreshTokens(currentTime);
             await dbContext.SaveChangesAsync(ct);
@@ -69,32 +69,13 @@ public sealed class AuthService(
         
         var pair = await jwtProvider.Generate(user.Email!, user.Id);
         
-        user.RevokeRefreshToken(model.OldTokenLiteral, currentTime);
+        user.RevokeRefreshToken(hashedOldToken, currentTime);
         
         dbContext.RefreshTokens.Add(CreateRefreshToken(pair.RefreshToken, user));
         await dbContext.SaveChangesAsync(ct);
         
         await EnqueueWipeIfNeeded(user, ct);
         return Result<TokenPair>.Success(pair);
-    }
-
-    public async Task<Result> InvalidateAllSessions(Guid userId, CancellationToken ct = default)
-    {
-        var user = await dbContext.Users
-            .Include(u => u.RefreshTokens)
-            .FirstOrDefaultAsync(u => u.Id == userId, ct);
-        
-        if (user is null)
-        {
-            return Result<TokenPair>.FromError(DomainErrors.UserNotFound);
-        }
-        
-        var currentTime = timeProvider.UtcNow;
-        
-        user.RevokeAllRefreshTokens(currentTime);
-        await dbContext.SaveChangesAsync(ct);
-        
-        return Result.Success();
     }
     
     public async Task<Result<TokenPair>> LoginAsync(LoginUserModel loginUserModel, CancellationToken ct = default)
@@ -121,12 +102,31 @@ public sealed class AuthService(
         await EnqueueWipeIfNeeded(user, ct);
         return Result<TokenPair>.Success(pair);
     }
+    
+    public async Task<Result> InvalidateAllSessions(Guid userId, CancellationToken ct = default)
+    {
+        var user = await dbContext.Users
+            .Include(u => u.RefreshTokens)
+            .FirstOrDefaultAsync(u => u.Id == userId, ct);
+        
+        if (user is null)
+        {
+            return Result<TokenPair>.FromError(DomainErrors.UserNotFound);
+        }
+        
+        var currentTime = timeProvider.UtcNow;
+        
+        user.RevokeAllRefreshTokens(currentTime);
+        await dbContext.SaveChangesAsync(ct);
+        
+        return Result.Success();
+    }
 
     private RefreshToken CreateRefreshToken(string token, User user)
     {
         return new RefreshToken
         {
-            Token = token,
+            Token = token.Sha256(),
             CreatedAt = timeProvider.UtcNow,
             ExpiresAt = RefreshTokenExpiry(),
             UserId = user.Id

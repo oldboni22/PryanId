@@ -12,10 +12,10 @@ public interface IUserDbContext
     DbSet<UserClient> UserClients { get; }
     
     DbSet<User> Users { get; }
+
+    DbSet<RefreshToken> RefreshTokens { get; }
     
     Task SaveChangesAsync(CancellationToken cancellationToken);
-    
-    DbSet<RefreshToken> RefreshTokens { get; }
     
     EntityEntry<TEntity> Entry<TEntity>(TEntity entity) where TEntity : class;
 }

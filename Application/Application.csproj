@@ -9,6 +9,7 @@
     <ItemGroup>
         <!-- It could appear as abstraction bleeding but duende is actually indirect part of the domain. --> 
         <!-- So it is not possible to elliminate that dependency. --> 
+        <PackageReference Include="Duende.IdentityServer" Version="7.4.7" /> 
         <PackageReference Include="Duende.IdentityServer.EntityFramework.Storage" Version="7.4.6" />
       <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.3" />
     </ItemGroup>
